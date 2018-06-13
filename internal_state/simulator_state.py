@@ -53,7 +53,7 @@ class SimulatorState:
 
     def update_xy_theta(self, px, py, theta, vehicle):
         '''
-        Updates the vehicles x, y, and theta values if the vehicle will remain on the road and out of collision.
+        Updates the vehicle's x, y, and theta values if the vehicle will remain on the road and out of collision.
         A vehicle is on the road/lot if the intertial position of the rear axle lies on the road/lot.
         '''
         timestep = self.t / time_delta

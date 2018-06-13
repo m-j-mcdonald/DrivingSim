@@ -2,13 +2,16 @@ from matplotlib.patches import Polygon
 import numpy as np
 from scipy.spatial import ConvexHull
 
+from internal_state.collision_utils import *
 from internal_state.constants import *
 
 class Vehicle:
     '''
     Class representing a single vehicle on the road
     '''
-    def __init__(self, horizon, x=0., y=0., theta=0., wheelbase=wheelbase, width=vehicle_width):
+    def __init__(self, sim, horizon, x=0., y=0., theta=0., wheelbase=wheelbase, width=vehicle_width):
+        self.sim = sim
+        self.horizon = horizon
         self.px = x * np.ones(horizon, dtype='float32')
         self.py = y * np.ones(horizon, dtype='float32')
         self.theta = theta * np.ones(horizon, dtype='float32')
@@ -93,9 +96,21 @@ class Vehicle:
             front_x, front_y = self.vehicle_front(time)
             self.crate_lift.x[time] = front_x + 0.75 * crate.width * np.cos(self.theta[time])
             self.crate_lift.y[time] =  front_y + 0.75 * crate.height * np.sin(self.theta[time])
-            self.crate_lift.theta[time]  = self.theta[time]
+            self.crate_lift.theta[time] = self.theta[time]
+
+            if check_obj_collisions(self.crate_lift, self.sim.obstacles, time) or \
+               check_obj_collisions(self.crate_lift, self.sim.external_vehicles, time) or \
+               check_obj_collisions(self.crate_lift, [self.sim.user_vehicle], time):
+
+                self.crate_lift.x[time] = front_x
+                self.crate_lift.y[time] =  front_y
+                self.crate_lift.theta[time] = self.theta[time]
+
+                return False
+
             self.crate_lift = None
             self.crate_lift.vehicle = None
+
             return True
 
         return False
@@ -111,19 +126,22 @@ class Vehicle:
                         if np.all(vehicle.trunk[i:i+int(crate.width*10), j:j+int(crate.height*10)] == 0):
                             x = i / 10.
                             y = j / 10.
+
                             break
 
                 if x < 0 or y < 0:
                     return False
 
             success = vehicle.place_in_trunk(crate, x, y, time)
+
             if success:
                 self.crate_lift = None
+
                 return True
 
         return False
 
-    def place_in_trunk(self, crate, x, y, time):
+    def put_in_trunk(self, crate, x, y, time):
         if x < 0 or y < 0 or x + crate.width > self.width or y + crate.length > self.wheelbase/2.0:
             return False
 
@@ -139,12 +157,24 @@ class Vehicle:
         return True
 
     def remove_from_trunk(self, crate, time):
-        self.trunk[self.trunk == crate.id] = 0
-        crate.vehicle = None
         crate.x[time] = self.px[time] - 0.75 * crate.width * np.cos(self.theta[time])
         crate.y[time] = self.py[time] - 0.75 * crate.length * np.sin(self.theta[time])
         crate.theta[time] = self.theta[time]
+
+        if check_obj_collisions(crate, self.sim.obstacles, time) or \
+           check_obj_collisions(crate, self.sim.external_vehicles, time) or \
+           check_obj_collisions(crate, [self.sim.user_vehicle], time):
+
+            crate.x[time] = self.px[time]
+            crate.y[time] =  self.py[time]
+            crate.theta[time] = self.theta[time]
+
+            return False
+
+        self.trunk[self.trunk == crate.id] = 0
         self.trunk_contents.remove(crate)
+        crate.vehicle = None
+
         return True
 
     def take_from_other_trunk(self, vehicle, crate, time):

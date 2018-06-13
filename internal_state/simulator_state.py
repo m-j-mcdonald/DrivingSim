@@ -1,5 +1,6 @@
 import tensorflow as tf
 
+from internal_state.collision_utils import *
 from internal_state.constants import *
 from internal_state.dynamics import *
 from internal_state.objects.vehicle import Vehicle
@@ -14,7 +15,6 @@ class SimulatorState:
         self.x_bound = x_bound
         self.y_bound = y_bound
 
-        self.user_vehicle = Vehicle(wheelbase, vehicle_width)
         self.external_vehicles = []
         self.crates = []
         self.obstacles = []
@@ -24,6 +24,8 @@ class SimulatorState:
 
         self.t = 0
         self.sess = tf.Session()
+
+        self.user_vehicle = Vehicle(self, horizon, wheelbase=wheelbase, width=vehicle_width)
 
     def set_time(self, time):
         self.t = time
@@ -68,7 +70,7 @@ class SimulatorState:
         on_road = np.any(map(lambda r: r.is_on_road(px, py), self.roads))
         in_lot = np.any(map(lambda l: l.is_in_lot(px, py), self.lots)) if not on_road else False
 
-        if not (n_road or in_lot) or not check_collision(self, vehicle):
+        if not (n_road or in_lot) or not check_all_collisions(self, vehicle):
             vehicle.px[timestep] = old_px
             vehicle.py[timestep] = old_py
             vehicle.theta[timestep] = old_theta
@@ -76,34 +78,13 @@ class SimulatorState:
         
         vehicle.update_xy_theta(px, py, theta, timestep)
 
-    def check_collision(self, vehicle):
+    def check_all_collisions(self, vehicle):
         '''
-        '''
-        timestep = self.t / time_delta
-
-        if vehicle is not self.user_vehicle:
-            pass
-
-        for v in self.external_vehicles:
-            if vehicle is not v:
-                pass
-
-    def check_collisions(self, vehicle, objects):
-        '''
-        Checks collisions between the provided vehicle and the list of objects
+        Checks if the vehicle is ever in collision at the current time
         '''
         timestep = self.t / time_delta
-        v_pts = vehicle.get_points(timestep)
 
-        for o in objects:
-            o_pts = o.get_points(timestep)
-
-            # Precursory checks to see if a collison check is necessary
-            if not bounding_box_check(v_pts, o_pts): continue
-            if vehicle.crate_lift is o: continue
-            if o in vehicle.trunk_contents: continue
-
-            md = minkowski_difference(v_pts, o_pts)
-            if point_in_poly(0, 0, md): return True
-
-        return False
+        return check_vehicle_collisions(vehicle, self.external_vehicles, timestep) or \
+               check_vehicle_collisions(vehicle, self.obstacles, timestep) or \
+               check_vehicle_collisions(vehicle, self.crates, timestep) or \
+               check_vehicle_collisions(vehicle, [self.user_vehicle], timestep)

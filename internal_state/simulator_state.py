@@ -47,23 +47,63 @@ class SimulatorState:
 
         vehicle.v[timestep] = v_new
         vehicle.phi[timestep] = phi_new
-        self.update_xy_if_on_road(px_new, py_new, theta_new, vehicle)
+        self.update_xy_theta(px_new, py_new, theta_new, vehicle)
 
-    def update_xy_theta_if_on_road(self, px, py, theta, vehicle):
+    def update_xy_theta(self, px, py, theta, vehicle):
         '''
-        A vehicle is on the road/lot if the intertial position of the rear axle lies on the road/lot
+        Updates the vehicles x, y, and theta values if the vehicle will remain on the road and out of collision.
+        A vehicle is on the road/lot if the intertial position of the rear axle lies on the road/lot.
         '''
         timestep = self.t / time_delta
-        if np.any(map(lambda r: r.is_on_road(px, py), self.roads)) or np.any(map(lambda l: l.is_in_lot(px, py), self.lots)):
-            vehicle.update_xy_theta(px, py, theta, timestep)
+        if not timestep: return
+
+        old_px = vehicle.px[timestep-1]
+        old_py = vehicle.py[timestep-1]
+        old_theta = vehicle.theta[timestep-1]
+
+        vehicle.px[timestep] = px
+        vehicle.py[timestep] = py
+        vehicle.theta[timestep] = theta
+
+        on_road = np.any(map(lambda r: r.is_on_road(px, py), self.roads))
+        in_lot = np.any(map(lambda l: l.is_in_lot(px, py), self.lots)) if not on_road else False
+
+        if not (n_road or in_lot) or not check_collision(self, vehicle):
+            vehicle.px[timestep] = old_px
+            vehicle.py[timestep] = old_py
+            vehicle.theta[timestep] = old_theta
+            return
+        
+        vehicle.update_xy_theta(px, py, theta, timestep)
 
     def check_collision(self, vehicle):
         '''
-        Take Minkowski difference between vehicle and all possible obstructions in order to determine if in collision
         '''
+        timestep = self.t / time_delta
+
         if vehicle is not self.user_vehicle:
             pass
 
         for v in self.external_vehicles:
             if vehicle is not v:
                 pass
+
+    def check_collisions(self, vehicle, objects):
+        '''
+        Checks collisions between the provided vehicle and the list of objects
+        '''
+        timestep = self.t / time_delta
+        v_pts = vehicle.get_points(timestep)
+
+        for o in objects:
+            o_pts = o.get_points(timestep)
+
+            # Precursory checks to see if a collison check is necessary
+            if not bounding_box_check(v_pts, o_pts): continue
+            if vehicle.crate_lift is o: continue
+            if o in vehicle.trunk_contents: continue
+
+            md = minkowski_difference(v_pts, o_pts)
+            if point_in_poly(0, 0, md): return True
+
+        return False

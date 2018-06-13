@@ -15,6 +15,32 @@ def minkowski_difference(a, b):
 
     return ConvexHull(np.array(diff))
 
+def bounding_box(a):
+    '''
+    Returns the bounding box for a set of points
+    '''
+    lowest_ax = a[0][0]
+    highest_ax = a[0][0]
+    lowest_ay = a[0][1]
+    highest_ay = a[0][1]
+    for pt in a:
+        if pt[0] < lowest_ax: lowest_ax = pt[0]
+        if pt[0] > highest_ax: highest_ax = pt[0]
+        if pt[1] < lowest_ax: lowest_ay = pt[1]
+        if pt[1] > highest_ay: highest_ay = pt[1]
+    return lowest_ax, lowest_ay, highest_ax, highest_ay
+
+def bounding_box_check(a, b):
+    '''
+    Checks the collision between the bounding boxes of a and b
+    a, b are sets of 2D points
+    '''
+    box_a = bounding_box(a)
+    box_b = bounding_box(b)
+    x_overlap = box_a[0] < box_b[2] and box_a[2] > box_b[0]
+    y_overlap = box_a[1] < box_b[3] and box_a[3] > box_b[1]
+    return x_overlap and y_overlap
+
 # Following three methods adapted from https://stackoverflow.com/questions/23937076/distance-to-convexhull
 def pnt2line(pnt, start, end):
     start = np.array(start)

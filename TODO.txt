@@ -1,10 +1,4 @@
 Predicate List:
-- At (Vehicle, Crate, Obstacle)
-- OnRoad
-- InLot
-- VehicleCollides (Vehicle, Crate, Obstacle)
 - VehicleCollidesHolding (Vehicle, Crate, Obstacle)
-- Dynamics
 - GraspValid
 - IsHolding
-- Stationary

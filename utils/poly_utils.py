@@ -100,9 +100,6 @@ def get_min_vec(pts, poly):
             dist_list.append(temp[0])
             vec_list.append(temp[1] - pt)
 
-        #Check point is within polygon
-        inside = point_in_poly(pt[0], pt[1], poly_points[poly.vertices])
-        dir_sign = -1. if inside else 1.        
-        pt_vec.append(dir_sign*vec_list[np.argmin(dist_list)])
+        pt_vec.append(vec_list[np.argmin(dist_list)])
 
-    return pt_vec
+    return np.array(pt_vec)

@@ -36,22 +36,22 @@ class SimulatorState:
         '''
         timestep = self.t / time_delta
 
-        px = vehicle.px[timestep]
-        py = vehicle.py[timestep]
+        x = vehicle.x[timestep]
+        y = vehicle.y[timestep]
         theta = vehicle.theta[timestep]
         v = vehicle.v[timestep]
         phi = vehicle.phi[timestep]
 
-        px_new, py_new, theta_new, v_new, phi_new = run_equations(px, py, theta, v, phi, wheelbase, u1, u2, self.sess)
+        x_new, y_new, theta_new, v_new, phi_new = run_equations(x, y, theta, v, phi, wheelbase, u1, u2, self.sess)
 
         self.t += time_delta
         timestep = self.t / time_delta
 
         vehicle.v[timestep] = v_new
         vehicle.phi[timestep] = phi_new
-        self.update_xy_theta(px_new, py_new, theta_new, vehicle)
+        self.update_xy_theta(x_new, y_new, theta_new, vehicle)
 
-    def update_xy_theta(self, px, py, theta, vehicle):
+    def update_xy_theta(self, x, y, theta, vehicle):
         '''
         Updates the vehicle's x, y, and theta values if the vehicle will remain on the road and out of collision.
         A vehicle is on the road/lot if the intertial position of the rear axle lies on the road/lot.
@@ -59,24 +59,24 @@ class SimulatorState:
         timestep = self.t / time_delta
         if not timestep: return
 
-        old_px = vehicle.px[timestep-1]
-        old_py = vehicle.py[timestep-1]
+        old_x = vehicle.x[timestep-1]
+        old_y = vehicle.y[timestep-1]
         old_theta = vehicle.theta[timestep-1]
 
-        vehicle.px[timestep] = px
-        vehicle.py[timestep] = py
+        vehicle.x[timestep] = x
+        vehicle.y[timestep] = y
         vehicle.theta[timestep] = theta
 
-        on_road = np.any(map(lambda r: r.is_on_road(px, py), self.roads))
-        in_lot = np.any(map(lambda l: l.is_in_lot(px, py), self.lots)) if not on_road else False
+        on_road = np.any(map(lambda r: r.is_on(x, y), self.roads))
+        in_lot = np.any(map(lambda l: l.is_on(x, y), self.lots)) if not on_road else False
 
         if not (n_road or in_lot) or not check_all_collisions(self, vehicle):
-            vehicle.px[timestep] = old_px
-            vehicle.py[timestep] = old_py
+            vehicle.x[timestep] = old_x
+            vehicle.y[timestep] = old_y
             vehicle.theta[timestep] = old_theta
             return
         
-        vehicle.update_xy_theta(px, py, theta, timestep)
+        vehicle.update_xy_theta(x, y, theta, timestep)
 
     def check_all_collisions(self, vehicle):
         '''

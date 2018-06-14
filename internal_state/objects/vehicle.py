@@ -1,20 +1,18 @@
 from matplotlib.patches import Polygon
-import numpy as np
-from scipy.spatial import ConvexHull
+import numy as np
+from sciy.spatial import ConvexHull
 
 from internal_state.collision_utils import *
 from internal_state.constants import *
+from internal_state.objects.object import DrivingObject
 
-class Vehicle:
+class Vehicle(DrivingObject):
     '''
     Class representing a single vehicle on the road
     '''
     def __init__(self, sim, horizon, x=0., y=0., theta=0., wheelbase=wheelbase, width=vehicle_width):
         self.sim = sim
         self.horizon = horizon
-        self.px = x * np.ones(horizon, dtype='float32')
-        self.py = y * np.ones(horizon, dtype='float32')
-        self.theta = theta * np.ones(horizon, dtype='float32')
         self.v = np.zeros(horizon)
         self.phi = np.zeros(horizon)
         self.u1 = np.zeros(horizon)
@@ -31,44 +29,33 @@ class Vehicle:
         self.trunk = np.zeros((self.width*10, self.wheelbase*5))
         self.trunk_contents = []
 
+        super(Vehicles, self).__init__(x, y, theta)
+
     def get_points(self, time):
         '''
         Returns the vertices of the vehicle at a given timestep
         '''
         theta = self.theta[time]
-        pt1 = self.px + np.sin(theta) * self.width / 2., self.py - np.cos(theta) * self.width/2
-        pt2 = self.px - np.sin(theta) * self.width / 2., self.py + np.cos(theta) * self.width/2
+        pt1 = self.x + np.sin(theta) * self.width / 2., self.y - np.cos(theta) * self.width/2
+        pt2 = self.x - np.sin(theta) * self.width / 2., self.y + np.cos(theta) * self.width/2
         pt3 = pt1[0] + np.cos(theta) * self.wheelbase, pt1[1] + np.sin(theta) * self.wheelbase
         pt4 = pt2[0] + np.cos(theta) * self.wheelbase, pt2[1] + np.sin(theta) * self.wheelbase
         return pt1, pt2, pt3, pt4
 
-    def get_hull(self, time):
-        '''
-        Returns the convex hull of the points defining the vehicle at a given timestep
-        '''
-        points = self.get_points(time)
-        return ConvexHull(points)
-
-    def get_patches(self, time):
-        '''
-        Return the Matplotlib patches for this vehicle at a given timestep.
-        Used for rendering purposes.
-        '''
-        return [Polygon(self.get_points(time))]
-
     def vehicle_front(self, time):
-        return self.px[time] + np.cos(self.theta[time]) * self.wheelbase, self.py[time] + np.sin(self.theta[time]) * self.wheelbase
+        return self.x[time] + np.cos(self.theta[time]) * self.wheelbase, self.y[time] + np.sin(self.theta[time]) * self.wheelbase
 
-    def update_xy_theta(self, px, py, theta, time):
-        self.px[time] = px
-        self.py[time] = py
-        self.theta[time] = theta
+    def update_xy_theta(self, x, y, theta, time):
+        old_x, old_y, old_theta = super(Vehicle, self).update_xy_theta(x, y, theta, time)
+
         if self.crate_lift:
             self.crate_lift.x[time], self.crate_lift.y[time] = self.vehicle_front(time)
             self.crate_lift.theta[time] = self.theta[time]
 
         for crate in self.trunk_contents:
-            crate.x[time], crate.y[time], crate.theta[time] = px, py, self.theta[time]
+            crate.x[time], crate.y[time], crate.theta[time] = x, y, self.theta[time]
+
+        return old_x, old_y, old_theta
 
     def pickup_closest_crate(self, crates, time):
         front_x, front_y = self.vehicle_front(time)
@@ -118,7 +105,7 @@ class Vehicle:
     def place_crate_in_other_trunk(self, time, vehicle, x=-1, y=-1):
         crate = self.crate_lift
         front_x, front_y = self.vehicle_front(time)
-        if crate != None and (front_x - vehicle.px[time]) ** 2 + (front_y - vehicle.py[time]) ** 2 < 1.5:
+        if crate != None and (front_x - vehicle.x[time]) ** 2 + (front_y - vehicle.y[time]) ** 2 < 1.5:
             if x < 0 or y < 0:
                 for i in range(0, int(vehicle.width*10-crate.width*10)):
                     if x >=0 and y >=0: break
@@ -153,20 +140,20 @@ class Vehicle:
         self.trunk[int(x*10):int(x*10+crate.width*10), int(y*10):int(y*10+crate.length*10)] = crate.id
         crate.vehicle = self
         self.trunk_contents.append(crate)
-        crate.x[time], crate.y[time], crate.theta[time] = self.px[time], self.py[time], self.theta[time]
+        crate.x[time], crate.y[time], crate.theta[time] = self.x[time], self.y[time], self.theta[time]
         return True
 
     def remove_from_trunk(self, crate, time):
-        crate.x[time] = self.px[time] - 0.75 * crate.width * np.cos(self.theta[time])
-        crate.y[time] = self.py[time] - 0.75 * crate.length * np.sin(self.theta[time])
+        crate.x[time] = self.x[time] - 0.75 * crate.width * np.cos(self.theta[time])
+        crate.y[time] = self.y[time] - 0.75 * crate.length * np.sin(self.theta[time])
         crate.theta[time] = self.theta[time]
 
         if check_obj_collisions(crate, self.sim.obstacles, time) or \
            check_obj_collisions(crate, self.sim.external_vehicles, time) or \
            check_obj_collisions(crate, [self.sim.user_vehicle], time):
 
-            crate.x[time] = self.px[time]
-            crate.y[time] =  self.py[time]
+            crate.x[time] = self.x[time]
+            crate.y[time] =  self.y[time]
             crate.theta[time] = self.theta[time]
 
             return False
@@ -179,7 +166,7 @@ class Vehicle:
 
     def take_from_other_trunk(self, vehicle, crate, time):
         front_x, front_y = self.vehicle_front(time)
-        if self.crate_lift = None and np.any(vehicle.trunk == crate.id) and (front_x - vehicle.px[time]) ** 2 + (front_y - vehicle.py[time]) ** 2 < 1.5:
+        if self.crate_lift = None and np.any(vehicle.trunk == crate.id) and (front_x - vehicle.x[time]) ** 2 + (front_y - vehicle.y[time]) ** 2 < 1.5:
             vehicle.trunk[vehicle.trunk == crate.id] = 0
             vehicle.trunk_contents.remove(crate)
             crate.vehicle = self

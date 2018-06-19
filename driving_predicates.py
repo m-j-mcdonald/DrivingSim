@@ -6,7 +6,7 @@ from core.util_classes.common_predicates import ExprPredicate
 
 from internal_state.dynamics import *
 
-MOVE_FACTOR = 0.5
+MOVE_FACTOR = 1
 
 class DynamicPredicate(ExprPredicate):
     def __init__(self, name, params, expected_param_types, env=None):
@@ -187,7 +187,7 @@ class OnSurface(ExprPredicate):
         self.obj, self.surface = params
         attr_inds = OrderedDict([(self.obj, [("xy", np.array([0,1], dtype=np.int))])])
 
-        f = lambda x: self.surface.body.to(x[0], x[1])
+        f = lambda x: self.surface.geom.to(x[0], x[1])
         grad = lambda x: np.eye(2)
 
         val = np.zeros((1, 2))
@@ -211,7 +211,7 @@ class InLane(ExprPredicate):
                                              ("theta", np.array([0], dtype=np.int))]),
                                  (self.lane_num, [("value", np.array([0], dtype=np.int))])])
 
-        f = lambda x: self.road.body.to_lane(x[0], x[1], x[2])
+        f = lambda x: self.road.geom.to_lane(x[0], x[1], x[2])
         grad = lambda x: np.eye(3)
 
         val = np.zeros((1, 2))
@@ -276,12 +276,12 @@ class CollisionPredicate(ExprPredicate):
                                               ("theta", np.array([0], dtype=np.int))])])
 
         def f(x):
-            old_pose1 = self.obj1.body.update_xy_theta(x[0], x[1], x[2], 0)
-            old_pose2 = self.obj2.body.update_xy_theta(x[3], x[4], x[5], 0)
-            obj1_pts = self.obj1.body.get_points()
-            obj2_pts = self.obj2.body.get_points()
-            self.obj1.body.update_xy_theta(0, old_pose1[0], old_pose1[1], old_pose1[2])
-            self.obj2.body.update_xy_theta(0, old_pose2[0], old_pose2[1], old_pose2[2])
+            old_pose1 = self.obj1.geom.update_xy_theta(x[0], x[1], x[2], 0)
+            old_pose2 = self.obj2.geom.update_xy_theta(x[3], x[4], x[5], 0)
+            obj1_pts = self.obj1.geom.get_points()
+            obj2_pts = self.obj2.geom.get_points()
+            self.obj1.geom.update_xy_theta(0, old_pose1[0], old_pose1[1], old_pose1[2])
+            self.obj2.geom.update_xy_theta(0, old_pose2[0], old_pose2[1], old_pose2[2])
             return collision_vector(obj1_pts, obj2_pts)
         
         def grad(obj1_body, obj2_body):
@@ -304,3 +304,66 @@ class VehicleObstacleCollision(CollisionPredicate):
 
 class VehicleCrateCollision(CollisionPredicate):
     pass
+
+class Follow(ExprPredicate):
+    def __init__(self, name, params, expected_param_types, env=None):
+        assert len(params) == 3
+        self.v1, self.v2, self.dist = params
+        attr_inds = OrderedDict([(self.v1, [("xy", np.array([0,1], dtype=np.int)),
+                                            ("theta", np.array([0], dtype=np.int))]),
+                                 (self.v2, [("xy", np.array([0,1], dtype=np.int)),
+                                            ("theta", np.array([0], dtype=np.int))]),
+                                 (self.dist, [("value", np.array([0], dtype=np.int))])])
+        
+        def f(x):
+            old_v1_pose = self.v1.geom.update_xy_theta(x[0], x[1], x[5], 0)
+            front_x, front_y = self.v1.geom.vehicle_front()
+
+            target_x = x[3] - np.cos(x[5]) * x[6]
+            target_y =x[4] - np.sin(x[5]) * x[6]
+
+            x_delta = target_x - x[0]
+            y_delta = target_y - x[1]
+
+            theta_delta = x[5] - x[2]
+            while theta_delta > np.pi:
+                theta_delta -= 2 * np.pi
+
+            while theta_delta < np.pi:
+                theta_delta += 2 * np.pi
+
+            return np.r_[x_delta, y_delta, theta_delta].reshape((3,1))
+
+        def grad(x):
+            return np.c_[np.eye(3), np.zeros((3,3))]
+
+        val = np.zeros((1, 3))
+        e = EqExpr(Expr(f, grad), val)
+        super(Stationary, self).__init__(name, e, attr_inds, params, expected_param_types, priority=-2)
+        self.spacial_anchor = False
+
+class StopAtStopSign(ExprPredicate):
+    def __init__(self, name, params, expected_param_types, env=None):
+        assert len(params) == 2
+        self.obj, self.sign = params
+        attr_inds = OrderedDict([(self.obj, [("xy", np.array([0,1], dtype=np.int))])])
+
+        def f(x):
+            direction = self.sign.geom.road.direction
+            rot_mat = np.array([[np.cos(direction), -np.sin(direction)], 
+                                [np.sin(direction), np.cos(direction)]])
+            dist_vec = self.sign.geom.loc - x[:2]
+            rot_dist_vec = rot_mat.dot(dist_vec)
+
+            if np.abs(rot_dist_vec[0]) < self.sign.geom.length / 2. and np.abs(rot_dist_vec[1]) < self.sign.geom.width / 2.:
+                return x[2:] - x[:2]
+
+            return np.zeros((2,))
+
+        def grad(x):
+            return np.c_[np.eye(2), -np.eye(2)]
+
+        val = np.zeros((2, 1))
+        e = EqExpr(Expr(f, grad), val)
+        super(StopAtStopSign, self).__init__(name, e, attr_inds, params, expected_param_types, active_range=(0,1), priority=-2)
+        self.spacial_anchor = False

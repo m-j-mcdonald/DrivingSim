@@ -74,6 +74,9 @@ class DerivatedPredicates(object):
         return prim_str
 
 dp = DerivatedPredicates()
+dp.add('HLNoCollisions', ['Vehicle'])
+dp.add('HLCrateInTrunk', ['Vehicle', 'Crate'])
+
 dp.add('VehicleAt', ['Vehicle', 'VehiclePose'])
 dp.add('ObstacleAt', ['Obstacle', 'ObstaclePose'])
 dp.add('CrateAt', ['Crate', 'CratePose'])
@@ -98,6 +101,9 @@ dp.add('VehicleObstacleCollision', ['Vehicle', 'Obstacle'])
 dp.add('VehicleCrateCollision', ['Vehicle', 'Crate'])
 dp.add('Follow', ['Vehicle', 'Vehicle', 'Distance'])
 dp.add('StopAtStopSign', ['Vehicle', 'StopSign'])
+dp.add('ExternalVehiclePastRoadEnd', ['Vehicle', 'Road'])
+dp.add('ExternalDriveDownRoad', ['Vehicle', 'Road'])
+dp.add('PosesWithinDistance', ['VehiclePose', 'VehiclePose', 'Distance'])
 
 dom_str += dp.get_str() + '\n'
 
@@ -131,3 +137,50 @@ class Action(object):
         cond_str += ')'
 
         return "Action " + self.name + ' ' + str(self.timesteps) + ': ' + self.args + ' ' + cond_str + ' ' + time_str
+
+class DriveDownRoad(Action):
+    def __init__(self):
+        self.name = 'drive_down_road'
+        self.timesteps = 30
+        end = self.timesteps - 1
+        self.args = '(?vehicle - Vehicle ?road - Road ?start - VehiclePose ?end - VehiclePose ?vu_limit - Limit ?vl_limit - Limit ?au_limit - Limit ?al_limit - Limit)'
+        
+        self.pre = [\
+            ('(VehicleAt ?vehicle ?start)', '{}:{}'.format(0, 0)),
+            ('(OnRoad ?vehicle ?road)', '{};{}'.format(0, end)),
+            ('(XValid ?vehicle)', '{};{}'.format(0, end-1)),
+            ('(YValid ?vehicle)', '{};{}'.format(0, end-1)),
+            ('(ThetaValid ?vehicle)', '{};{}'.format(0, end-1)),
+            ('(VelValid ?vehicle)', '{};{}'.format(0, end-1)),
+            ('(PhiValid ?vehicle)', '{};{}'.format(0, end-1)),
+            ('(VelUpperLimit ?vehicle ?vu_limit)', '{};{}'.format(0, end)),
+            ('(VelLowerLimit ?vehicle ?vl_limit)', '{};{}'.format(0, end)),
+            ('(AccUpperLimit ?vehicle ?au_limit)', '{};{}'.format(0, end)),
+            ('(AccLowerLimit ?vehicle ?al_limit)', '{};{}'.format(0, end)),
+            ('(forall (?obj - Vehicle)\
+                (VehicleVehicleCollision ?vehicle ?obj))', '{}:{}'.format(0, end-1)),
+            ('(forall (?obj - Obstacle)\
+                (VehicleObstacleCollision ?vehicle ?obj))', '{}:{}'.format(0, end-1)),
+            ('(forall (?obj - Obstacle) (ObstacleStationary ?obj)))', '{}:{}'.format(0, end-1)),
+            ('(forall (?obj - Crate)\
+                (VehicleCrateCollision ?vehicle ?obj))', '{}:{}'.format(0, end-1)),
+            ('(forall (?obj - Crate) (CrateStationary ?obj)))', '{}:{}'.format(0, end-1)),
+            ('(forall (?sign - StopSign)\
+                (forall (?obj - Vehicle)\
+                    (StopAtStopSign ?obj ?sign)))', '{}:{}'.format(0, end-1)),
+            ('(forall (?obj - Vehicle)\
+                (IsMP ?vehicle))', '{}:{}'.format(0, end-1)),
+            ('(forall (?obj - Vehicle)\
+                (ExternalDriveDownRoad ?vehicle))', '{}:{}'.format(0, end-1)),
+            ('(forall (?obj - Vehicle)\
+                (ExternalVehiclePastRoadEnd ?vehicle))', '{}:{}'.format(0, end-1)),
+        ]
+
+        self.eff = [\
+            (' (not (VehicleAt ?vehicle ?start))', '{}:{}'.format(end, end-1)),
+            ('(VehicleAt ?vehicle ?end)', '{}:{}'.format(end, end)),
+            ('(OnRoad ?vehicle ?road)', '{}:{}'.format(end, end-1))
+            ('(NoCollisions ?vehicle)', '{}:{}'.format(end, end-1))]
+
+# TODO: Follow, MergeLeft, MergeRight, Pass, StopAtSign, Turn, Wait
+# tODO: Variants with grasping, shipping

@@ -10,7 +10,7 @@ class Vehicle(DrivingObject):
     '''
     Class representing a single vehicle on the road
     '''
-    def __init__(self, sim, horizon, x=0., y=0., theta=0., wheelbase=wheelbase, width=vehicle_width):
+    def __init__(self, sim, horizon, x=0., y=0., theta=0., wheelbase=wheelbase, width=vehicle_width, is_user=False, road=None):
         self.sim = sim
         self.horizon = horizon
         self.v = np.zeros(horizon)
@@ -28,6 +28,12 @@ class Vehicle(DrivingObject):
         # 10cm square grid; stores id of crate in each square (zero is no crate)
         self.trunk = np.zeros((self.width*10, self.wheelbase*5))
         self.trunk_contents = []
+
+        # Whether this is a user controlled vehicle
+        self.is_user = is_user
+
+        # What road this vehicle is on, used for controlling external vehicles
+        self.road = road
 
         super(Vehicles, self).__init__(x, y, theta)
 
@@ -166,7 +172,10 @@ class Vehicle(DrivingObject):
 
     def take_from_other_trunk(self, vehicle, crate, time):
         front_x, front_y = self.vehicle_front(time)
-        if self.crate_lift = None and np.any(vehicle.trunk == crate.id) and (front_x - vehicle.x[time]) ** 2 + (front_y - vehicle.y[time]) ** 2 < 1.5:
+        if vehicle.in_trunk(crate) and \
+           self.crate_lift = None and np.any(vehicle.trunk == crate.id) and \
+           (front_x - vehicle.x[time]) ** 2 + (front_y - vehicle.y[time]) ** 2 < 1.5:
+
             vehicle.trunk[vehicle.trunk == crate.id] = 0
             vehicle.trunk_contents.remove(crate)
             crate.vehicle = self
@@ -175,4 +184,8 @@ class Vehicle(DrivingObject):
             crate.y[time] = front_y
             crate.theta[time] = self.theta[time]
             return True
+
         return False
+
+    def in_trunk(self, crate):
+        return crate in self.trunk_contents

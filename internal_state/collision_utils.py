@@ -15,11 +15,11 @@ def collision_vector(obj1_pts, obj2_pts):
     Finds shortest vector to move obj2_pts out o collision with obj1_pts
     '''
     if not bounding_box_check(obj1_pts, obj2_pts):
-        return np.array([0,0])
+        return np.zeros((2,))
 
     md = minkowski_difference(obj1_pts, obj2_pts)
     if not point_in_poly(0, 0, md):
-        return np.array([0,0])
+        return np.zeros((2,))
 
     return get_min_vec([[0,0]], md)
 

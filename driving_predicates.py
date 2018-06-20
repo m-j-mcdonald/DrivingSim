@@ -6,7 +6,41 @@ from core.util_classes.common_predicates import ExprPredicate
 
 from internal_state.dynamics import *
 
-MOVE_FACTOR = 1
+MOVE_FACTOR = 2
+END_DIST = 4
+
+class HLPred(ExprPredicate):
+    def __init__(self, name, params, expected_param_types, env=None):
+        attr_inds = OrderedDict([(self.obj, [("xy", np.array([0,1], dtype=np.int))])])
+        A = np.zeros((2,2))
+        b = np.zeros((2,1))
+        val = np.zeros((2, 1))
+        aff_e = AffExpr(A, b)
+        e = EqExpr(aff_e, val)
+        super(HLPred, self).__init__(name, e, attr_inds, params, expected_param_types, priority=-2)    
+
+class HLNoCollisions(HLPred):
+    def __init__(self, name, params, expected_param_types, env=None):
+        assert len(params) == 1
+        self.obj, = params
+
+        super(HLNoCollisions, self).__init__(name, params, expected_param_types, priority=-2)
+        self.spacial_anchor = False
+
+    def check_if_true(self, sim):
+        return sim.check_all_collisions(sim.user_vehicle) or \
+               np.any([sim.check_all_collisions(v) for v in sim.external_vehicles])
+
+class HLCrateInTrunk(HLPred):
+    def __init__(self, name, params, expected_param_types, env=None):
+        assert len(params) == 2
+        self.obj, self.crate = params
+
+        super(HLCrateInTrunk, self).__init__(name, params, expected_param_types, priority=-2)
+        self.spacial_anchor = False
+
+    def check_if_true(self, sim):
+        return self.obj.geom.in_trunk(self.crate.geom)
 
 class DynamicPredicate(ExprPredicate):
     def __init__(self, name, params, expected_param_types, env=None):
@@ -105,8 +139,8 @@ class At(ExprPredicate):
     def __init__(self, name, params, expected_param_types, env=None):
         assert len(params) == 2
         self.obj, self.target = params
-        attr_inds = OrderedDict([(self.obj, [("xy", np.array([0,1], dtype=np.int)),
-                                             ("theta", np.array([0], dtype=np.int))]),
+        attr_inds = OrderedDict([(self.obj,    [("xy", np.array([0,1], dtype=np.int)),
+                                                ("theta", np.array([0], dtype=np.int))]),
                                  (self.target, [("xy", np.array([0,1], dtype=np.int)),
                                                 ("theta", np.array([0], dtype=np.int))])])
 
@@ -131,9 +165,9 @@ class Near(ExprPredicate):
     def __init__(self, name, params, expected_param_types, env=None):
         assert len(params) == 3
         self.obj, self.target, self.dist = params
-        attr_inds = OrderedDict([(self.obj, [("xy", np.array([0,1], dtype=np.int))]),
+        attr_inds = OrderedDict([(self.obj,    [("xy", np.array([0,1], dtype=np.int))]),
                                  (self.target, [("xy", np.array([0,1], dtype=np.int))]),,
-                                 (self.dist, [("value", np.array([0], dtype=np.int))])])
+                                 (self.dist,   [("value", np.array([0], dtype=np.int))])])
 
         A = np.c_[np.r_[np.eye(2), -np.eye(2)], np.r_[-np.eye(2), np.eye(2)], -np.ones((4,1))]
         b, val = np.zeros((4, 1)), np.zeros((4, 1))
@@ -145,6 +179,36 @@ class Near(ExprPredicate):
 
 class VehicleAtSign(Near):
     pass
+
+class ExternalVehiclePastRoadEnd(ExprPredicate):
+    def __init__(self, name, params, expected_param_types, env=None):
+        assert len(params) == 1
+
+        self.obj, = params
+        attr_inds = OrderedDict([(self.obj, [("xy", np.array([0,1], dtype=np.int))])])
+        if not self.obj.geom.road:
+            A = np.zeros((2,2))
+            b = np.zeros((2,1))
+            val = np.zeros((2, 1))
+            aff_e = AffExpr(A, b)
+            e = EqExpr(aff_e, val)
+
+        else:
+            direction = self.obj.geom.road
+            rot_mat = np.array([[np.cos(direction), -np.sin(direction)],
+                                [np.sin(direction), np.cos(direction)]])
+
+            road_len = self.obj.geom.road.length
+            self.road_end = np.array([self.obj.geom.road.x, self.obj.geom.road.y]) + rot_mat.dot([road_len + END_DIST, 0])
+
+            A = np.eye(2)
+            b = -self.road_end
+            val = np.zeros((2, 1))
+            aff_e = AffExpr(A, b)
+            e = EqExpr(aff_e, val)
+
+        super(ExternalVehiclePastRoadEnd, self).__init__(name, e, attr_inds, params, expected_param_types, priority=-2)
+        self.spacial_anchor = True
 
 class Stationary(ExprPredicate):
     def __init__(self, name, params, expected_param_types, env=None):
@@ -168,6 +232,18 @@ class CrateStationary(Stationary):
 class ObstacleStationary(Stationary):
     pass
 
+class StationaryLimit(ExprPredicate):
+    def __init__(self, name, params, expected_param_types, env=None):
+        assert len(params) == 1
+        self.limit, = params
+        attr_inds = OrderedDict([(self.limit, [("value", np.array([0], dtype=np.int))])])
+
+        A = np.c_[1, -1]
+        b, val = np.zeros((1, 1)), np.zeros((1, 1))
+        e = EqExpr(AffExpr(A, b), val)
+        super(StationaryLimit, self).__init__(name, e, attr_inds, params, expected_param_types, active_range=(0,1), priority=-2)
+        self.spacial_anchor = False
+
 class IsMP(ExprPredicate):
     def __init__(self, name, params, expected_param_types, env=None):
         assert len(params) == 1
@@ -178,7 +254,7 @@ class IsMP(ExprPredicate):
         A = np.c_[np.r_[np.eye(3), -np.eye(3)], np.r_[-np.eye(3), np.eye(3)]]
         b, val = np.zeros((6, 1)), MOVE_FACTOR * np.ones((6, 1))
         e = LEqExpr(AffExpr(A, b), val)
-        super(Stationary, self).__init__(name, e, attr_inds, params, expected_param_types, active_range=(0,1), priority=-2)
+        super(IsMP, self).__init__(name, e, attr_inds, params, expected_param_types, active_range=(0,1), priority=-2)
         self.spacial_anchor = False
 
 class OnSurface(ExprPredicate):
@@ -207,14 +283,14 @@ class InLane(ExprPredicate):
     def __init__(self, name, params, expected_param_types, env=None):
         assert len(params) == 3
         self.obj, self.road, self.lane_num = params
-        attr_inds = OrderedDict([(self.obj, [("xy", np.array([0,1], dtype=np.int)),
-                                             ("theta", np.array([0], dtype=np.int))]),
+        attr_inds = OrderedDict([(self.obj,      [("xy", np.array([0,1], dtype=np.int)),
+                                                  ("theta", np.array([0], dtype=np.int))]),
                                  (self.lane_num, [("value", np.array([0], dtype=np.int))])])
 
         f = lambda x: self.road.geom.to_lane(x[0], x[1], x[2])
         grad = lambda x: np.eye(3)
 
-        val = np.zeros((1, 2))
+        val = np.zeros((2, 1))
         dynamics_expr = Expr(self.f, self.grad)
         e = EqExpr(dynamics_expr, val)
 
@@ -289,7 +365,7 @@ class CollisionPredicate(ExprPredicate):
             grad[:, :2] = -np.eye(2)
             grad[:, 3:5] = np.eye(2)
 
-        val = np.zeros((1, 2))
+        val = np.zeros((2, 1))
         col_expr = Expr(f, grad)
         e = EqExpr(col_expr, val)
 
@@ -337,7 +413,7 @@ class Follow(ExprPredicate):
         def grad(x):
             return np.c_[np.eye(3), np.zeros((3,3))]
 
-        val = np.zeros((1, 3))
+        val = np.zeros((3, 1))
         e = EqExpr(Expr(f, grad), val)
         super(Stationary, self).__init__(name, e, attr_inds, params, expected_param_types, priority=-2)
         self.spacial_anchor = False
@@ -349,6 +425,9 @@ class StopAtStopSign(ExprPredicate):
         attr_inds = OrderedDict([(self.obj, [("xy", np.array([0,1], dtype=np.int))])])
 
         def f(x):
+            if not self.sign.geom.road.is_on(x[0], x[1]):
+                return np.zeros((2,))
+
             direction = self.sign.geom.road.direction
             rot_mat = np.array([[np.cos(direction), -np.sin(direction)], 
                                 [np.sin(direction), np.cos(direction)]])
@@ -367,3 +446,62 @@ class StopAtStopSign(ExprPredicate):
         e = EqExpr(Expr(f, grad), val)
         super(StopAtStopSign, self).__init__(name, e, attr_inds, params, expected_param_types, active_range=(0,1), priority=-2)
         self.spacial_anchor = False
+
+class ExternalDriveDownRoad(ExprPredicate):
+    def __init__(self, name, params, expected_param_types, env=None):
+        assert len(params) == 1
+        self.obj, = params
+        attr_inds = OrderedDict([(self.obj, [("xy", np.array([0,1], dtype=np.int))])])
+
+        if self.obj.geom.road:
+            direction = self.obj.geom.road.direction
+            rot_mat = np.array([[np.cos(direction), -np.sin(direction)], 
+                                [np.sin(direction), np.cos(direction)]])
+            self.dir_vec = rot_mat.dot([1,0])
+        else:
+            self.dir_vec = np.zeros((2,))
+
+        def f(x):
+            if not self.obj.geom.road:
+                return np.zeros((2,))
+
+            dist_vec = x[2:4] - x[:2]
+            return (dist_vec / np.linalg.norm(dist_vec)) - self.dir_vec
+
+        def grad(x):
+            return np.c_[np.eye(2), -np.eye(2)]
+
+        val = np.zeros((2, 1))
+        e = EqExpr(Expr(f, grad), val)
+        super(ExternalDriveDownRoad, self).__init__(name, e, attr_inds, params, expected_param_types, active_range=(0,1), priority=-2)
+        self.spacial_anchor = False
+
+class WithinDistance(ExprPredicate):
+    def __init__(self, name, params, expected_param_types, env=None):
+        assert len(params) == 3
+        self.target1, self.target2, self.dist = params
+        attr_inds = OrderedDict([(self.target1, [("xy", np.array([0,1], dtype=np.int))]),
+                                 (self.target2, [("xy", np.array([0,1], dtype=np.int))]),
+                                 (self.dist,    [("value", np.array([0], dtype=np.int))])])
+
+        def f(x):
+            scaled_vec = np.abs((x[2:4] - x[:2]) / np.linalg.norm(x[2:4] - x[:2]) * x[4])
+            if np.all(scaled_vec < x[2:4] - x[:2]):
+                return -x[2:4] + x[:2] + scaled_vec
+            elif np.all(-scaled_vec > x[2:4] - x[:2]):
+                return -scaled_vec - x[2:4] + x[:2]
+            else:
+                return np.zeros((2,))
+
+        def grad(x):
+            return np.c_[-np.eye(2), np.eye(2), np.zeros((1,2))]
+
+        val = np.zeros((2, 1))
+        dynamics_expr = Expr(self.f, self.grad)
+        e = LEqExpr(dynamics_expr, val)
+
+        super(WithinDistance, self).__init__(name, e, attr_inds, params, expected_param_types, priority=-2)
+        self.spacial_anchor = False
+
+class PosesWithDistance(WithinDistance):
+    pass

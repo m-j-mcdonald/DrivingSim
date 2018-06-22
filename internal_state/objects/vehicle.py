@@ -37,15 +37,17 @@ class Vehicle(DrivingObject):
 
         super(Vehicles, self).__init__(x, y, theta)
 
-    def get_points(self, time):
+    def get_points(self, time, dist=0):
         '''
         Returns the vertices of the vehicle at a given timestep
         '''
         theta = self.theta[time]
-        pt1 = self.x + np.sin(theta) * self.width / 2., self.y - np.cos(theta) * self.width/2
-        pt2 = self.x - np.sin(theta) * self.width / 2., self.y + np.cos(theta) * self.width/2
-        pt3 = pt1[0] + np.cos(theta) * self.wheelbase, pt1[1] + np.sin(theta) * self.wheelbase
-        pt4 = pt2[0] + np.cos(theta) * self.wheelbase, pt2[1] + np.sin(theta) * self.wheelbase
+        width = self.width + 2 * dist
+        wheelbase = self.wheelbase + 2 * dist
+        pt1 = self.x + np.sin(theta) * width / 2., self.y - np.cos(theta) * width/2
+        pt2 = self.x - np.sin(theta) * width / 2., self.y + np.cos(theta) * width/2
+        pt3 = pt1[0] + np.cos(theta) * wheelbase, pt1[1] + np.sin(theta) * wheelbase
+        pt4 = pt2[0] + np.cos(theta) * wheelbase, pt2[1] + np.sin(theta) * wheelbase
         return pt1, pt2, pt3, pt4
 
     def vehicle_front(self, time):

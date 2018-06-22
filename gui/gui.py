@@ -37,7 +37,7 @@ class GUI:
         self.add_surfaces()
         plt.show()
 
-    def add_collection(self, to_render, time=-1):
+    def add_collection(self, to_render, zorder=0, time=-1):
         '''
         Add all patches for a given set of objects or surfaces
         '''
@@ -46,42 +46,46 @@ class GUI:
             patches.extend(r.get_patches(time)) if time >= 0 else patches.extend(r.get_patches())
 
         col = PatchCollection(patches)
+        col.zorder = zorder
         self.ax.add_collection(col)
 
     def add_vehicles(self, time):
         '''
         Add all vehicles to be rendered at a given timestep
         '''
-        vehicles = self.sim_state.external_vehicles + self.sim_state.user_vehicle
-        self.add_collection(vehicles, time)
+        vehicles = self.sim_state.external_vehicles
+        self.add_collection(vehicles, 5, time)
+
+        user_vehicle = [self.sim_state.user_vehicle]
+        self.add_collection(user_vehicle, 6, time)
 
     def add_crates(self, time):
         '''
         Add all crates to be rendered at a given timestep
         '''
         crates = self.sim_state.crates
-        self.add_collection(crates, time)
+        self.add_collection(crates, 4, time)
 
     def add_obstacles(self, time):
         '''
         Add all obstacles to be rendered at a given timestep
         '''
         obstacles = self.sim_state.obstacles
-        self.add_collection(obstacles, time)
+        self.add_collection(obstacles, 3, time)
 
     def add_roads(self):
         '''
         Add all roads to be rendered at a given timestep
         '''
         roads = self.sim_state.roads
-        self.add_collection(roads)
+        self.add_collection(roads, 1)
 
     def add_lots(self):
         '''
         Add all lots to be rendered at a given timestep
         '''
         lots = self.sim_state.lots
-        self.add_collection(lots)
+        self.add_collection(lots, 2)
 
     def add_objects(self, time):
         '''

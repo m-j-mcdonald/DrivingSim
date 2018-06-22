@@ -23,7 +23,7 @@ class Obstacle(DrivingObject):
 
         super(Obstacle, self).__init__(x, y, 0)
 
-    def get_points(self, time):
+    def get_points(self, time, dist=0):
         '''
         Returns the coordinates of the obstacle's defining points at a given timestep
         '''

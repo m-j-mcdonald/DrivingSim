@@ -8,6 +8,7 @@ from internal_state.dynamics import *
 
 MOVE_FACTOR = 2
 END_DIST = 4
+COL_DIST = 0.5
 
 class HLPred(ExprPredicate):
     def __init__(self, name, params, expected_param_types, env=None):
@@ -57,7 +58,7 @@ class DynamicPredicate(ExprPredicate):
         dynamics_expr = Expr(self.f, self.grad)
         e = EqExpr(dynamics_expr, val)
 
-        super(DynamicPredicate, self).__init__(name, e, attr_inds, params, expected_param_types, active_range=(0,1), priority=-2)
+        super(DynamicPredicate, self).__init__(name, e, attr_inds, params, expected_param_types, active_range=(0,1), priority=1)
         self.spacial_anchor = False
 
 class XValid(DynamicPredicate):
@@ -180,6 +181,44 @@ class Near(ExprPredicate):
 class VehicleAtSign(Near):
     pass
 
+class VelAt(ExprPredicate):
+    def __init__(self, name, params, expected_param_types, env=None):
+        assert len(params) == 2
+        self.obj, self.target = params
+        attr_inds = OrderedDict([(self.obj,    [("vel", np.array([0], dtype=np.int))]),
+                                 (self.target, [("value", np.array([0], dtype=np.int))])])
+
+        A = np.c_[1, -1]
+        b, val = np.zeros((1, 1)), np.zeros((1, 1))
+        aff_e = AffExpr(A, b)
+        e = EqExpr(aff_e, val)
+
+        super(VelAt, self).__init__(name, e, attr_inds, params, expected_param_types, priority=-2)
+        self.spacial_anchor = True
+
+class VehicleVelAt(Velt):
+    pass
+
+class ExternalVehicleVelAt(VelAt):
+    def __init__(self, name, params, expected_param_types, env=None):
+        assert len(params) == 2
+        self.obj, self.target = params
+
+        if self.obj.geom.is_user:
+            attr_inds = OrderedDict([(self.obj,    [("vel", np.array([0], dtype=np.int))]),
+                                     (self.target, [("value", np.array([0], dtype=np.int))])])
+
+            A = np.c_[0, 0]
+            b, val = np.zeros((1, 1)), np.zeros((1, 1))
+            aff_e = AffExpr(A, b)
+            e = EqExpr(aff_e, val)
+
+            super(VelAt, self).__init__(name, e, attr_inds, params, expected_param_types, priority=-2)
+            self.spacial_anchor = True
+
+        else:
+            super(ExternalVehicleVelAt, self).__init__(name, params, expected_param_types)
+
 class ExternalVehiclePastRoadEnd(ExprPredicate):
     def __init__(self, name, params, expected_param_types, env=None):
         assert len(params) == 1
@@ -270,7 +309,7 @@ class OnSurface(ExprPredicate):
         dynamics_expr = Expr(self.f, self.grad)
         e = EqExpr(dynamics_expr, val)
 
-        super(OnSurface, self).__init__(name, e, attr_inds, params, expected_param_types, priority=-2)
+        super(OnSurface, self).__init__(name, e, attr_inds, params, expected_param_types, priority=2)
         self.spacial_anchor = False
 
 class OnRoad(OnSurface):
@@ -294,7 +333,7 @@ class InLane(ExprPredicate):
         dynamics_expr = Expr(self.f, self.grad)
         e = EqExpr(dynamics_expr, val)
 
-        super(OnSurface, self).__init__(name, e, attr_inds, params, expected_param_types, priority=-2)
+        super(OnSurface, self).__init__(name, e, attr_inds, params, expected_param_types, priority=2)
         self.spacial_anchor = False
 
 class Limit(ExprPredicate):
@@ -354,8 +393,8 @@ class CollisionPredicate(ExprPredicate):
         def f(x):
             old_pose1 = self.obj1.geom.update_xy_theta(x[0], x[1], x[2], 0)
             old_pose2 = self.obj2.geom.update_xy_theta(x[3], x[4], x[5], 0)
-            obj1_pts = self.obj1.geom.get_points()
-            obj2_pts = self.obj2.geom.get_points()
+            obj1_pts = self.obj1.geom.get_points(0, COL_DIST)
+            obj2_pts = self.obj2.geom.get_points(0, COL_DIST)
             self.obj1.geom.update_xy_theta(0, old_pose1[0], old_pose1[1], old_pose1[2])
             self.obj2.geom.update_xy_theta(0, old_pose2[0], old_pose2[1], old_pose2[2])
             return collision_vector(obj1_pts, obj2_pts)
@@ -369,7 +408,7 @@ class CollisionPredicate(ExprPredicate):
         col_expr = Expr(f, grad)
         e = EqExpr(col_expr, val)
 
-        super(CollisionPredicate, self).__init__(name, e, attr_inds, params, expected_param_types, priority=-2)
+        super(CollisionPredicate, self).__init__(name, e, attr_inds, params, expected_param_types, priority=3)
         self.spacial_anchor = False
 
 class VehicleVehicleCollision(CollisionPredicate):
@@ -379,6 +418,57 @@ class VehicleObstacleCollision(CollisionPredicate):
     pass
 
 class VehicleCrateCollision(CollisionPredicate):
+    pass
+
+class CrateObstacleCollision(CollisionPredicate):
+    pass
+
+class PathCollisionPredicate(ExprPredicate):
+    def __init__(self, name, params, expected_param_types, env=None):
+        assert len(params) == 2
+        self.obj1, self.obj2 = params
+        attr_inds = OrderedDict([(self.obj1, [("xy", np.array([0,1], dtype=np.int)),
+                                              ("theta", np.array([0], dtype=np.int))]),
+                                 (self.obj2, [("xy", np.array([0,1], dtype=np.int)),
+                                              ("theta", np.array([0], dtype=np.int))])])
+
+        def f(x):
+            old_0_pose1 = self.obj1.geom.update_xy_theta(x[0], x[1], x[2], 0)
+            old_0_pose2 = self.obj2.geom.update_xy_theta(x[3], x[4], x[5], 0)
+            old_1_pose1 = self.obj1.geom.update_xy_theta(x[6], x[7], x[8], 1)
+            old_1_pose2 = self.obj2.geom.update_xy_theta(x[9], x[10], x[11], 1)
+            obj1_pts = self.obj1.geom.get_points(0, COL_DIST) + self.obj1.geom.get_points(1, COL_DIST)
+            obj2_pts = self.obj2.geom.get_points(0, COL_DIST) + self.obj2.geom.get_points(1, COL_DIST)
+            self.obj1.geom.update_xy_theta(0, old_0_pose1[0], old_0_pose1[1], old_0_pose1[2])
+            self.obj2.geom.update_xy_theta(0, old_0_pose2[0], old_0_pose2[1], old_0_pose2[2])
+            self.obj1.geom.update_xy_theta(1, old_1_pose1[0], old_1_pose1[1], old_1_pose1[2])
+            self.obj2.geom.update_xy_theta(1, old_1_pose2[0], old_1_pose2[1], old_1_pose2[2])
+            return collision_vector(obj1_pts, obj2_pts)
+        
+        def grad(obj1_body, obj2_body):
+            grad = np.zeros((2,12))
+            grad[:, :2] = -np.eye(2)
+            grad[:, 3:5] = np.eye(2)
+            grad[:, 5:8] = -np.eye(2)
+            grad[:, 8:11] = np.eye(2)
+
+        val = np.zeros((2, 1))
+        col_expr = Expr(f, grad)
+        e = EqExpr(col_expr, val)
+
+        super(CollisionPredicate, self).__init__(name, e, attr_inds, params, expected_param_types, active_range=(0,1), priority=3)
+        self.spacial_anchor = False
+
+class VehicleVehiclePathCollision(PathCollisionPredicate):
+    pass
+
+class VehicleObstaclePathCollision(PathCollisionPredicate):
+    pass
+
+class VehicleCratePathCollision(PathCollisionPredicate):
+    pass
+
+class CrateObstaclePathCollision(CollisionPredicate):
     pass
 
 class Follow(ExprPredicate):
@@ -415,7 +505,7 @@ class Follow(ExprPredicate):
 
         val = np.zeros((3, 1))
         e = EqExpr(Expr(f, grad), val)
-        super(Stationary, self).__init__(name, e, attr_inds, params, expected_param_types, priority=-2)
+        super(Stationary, self).__init__(name, e, attr_inds, params, expected_param_types, priority=3)
         self.spacial_anchor = False
 
 class StopAtStopSign(ExprPredicate):
@@ -444,7 +534,7 @@ class StopAtStopSign(ExprPredicate):
 
         val = np.zeros((2, 1))
         e = EqExpr(Expr(f, grad), val)
-        super(StopAtStopSign, self).__init__(name, e, attr_inds, params, expected_param_types, active_range=(0,1), priority=-2)
+        super(StopAtStopSign, self).__init__(name, e, attr_inds, params, expected_param_types, active_range=(0,1), priority=2)
         self.spacial_anchor = False
 
 class ExternalDriveDownRoad(ExprPredicate):
@@ -473,7 +563,7 @@ class ExternalDriveDownRoad(ExprPredicate):
 
         val = np.zeros((2, 1))
         e = EqExpr(Expr(f, grad), val)
-        super(ExternalDriveDownRoad, self).__init__(name, e, attr_inds, params, expected_param_types, active_range=(0,1), priority=-2)
+        super(ExternalDriveDownRoad, self).__init__(name, e, attr_inds, params, expected_param_types, active_range=(0,1), priority=2)
         self.spacial_anchor = False
 
 class WithinDistance(ExprPredicate):
@@ -500,7 +590,7 @@ class WithinDistance(ExprPredicate):
         dynamics_expr = Expr(self.f, self.grad)
         e = LEqExpr(dynamics_expr, val)
 
-        super(WithinDistance, self).__init__(name, e, attr_inds, params, expected_param_types, priority=-2)
+        super(WithinDistance, self).__init__(name, e, attr_inds, params, expected_param_types, priority=1)
         self.spacial_anchor = False
 
 class PosesWithDistance(WithinDistance):

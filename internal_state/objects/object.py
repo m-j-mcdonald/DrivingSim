@@ -6,7 +6,7 @@ class DrivingObject:
         self.y = y * np.ones(horizon, dtype='float32')
         self.theta = theta * np.ones(horizon, dtype='float32')
 
-    def get_points(self, time):
+    def get_points(self, time, dist=0):
         '''
         Returns the coordinates of the object's defining points at a given timestep.
         Must be overridden in child class.

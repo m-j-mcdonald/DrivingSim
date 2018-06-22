@@ -25,34 +25,36 @@ def collision_vector(obj1_pts, obj2_pts):
 
 def check_vehicle_collisions(vehicle, external_objects, timestep):
     '''
-    Checks collisions between the provided vehicle and the list of objects at the given timestep.
+    Checks collisions between the provided vehicle and the list of objects at the given timestep(s).
     '''
-    v_pts = vehicle.get_points(timestep)
+    v_pts = vehicle.get_points(timestep) if type(timestep) is int else [pt for pt in vehicle.get_points(t) for t in timestep]
 
     for o in external_objects:
         if o is vehicle: continue
 
-        o_pts = o.get_points(timestep)
+        o_pts = o.get_points(timestep) if type(timestep) is int else [pt for pt in o.get_points(t) for t in timestep]
 
-        # Precursory checks to see if a collison check is necessary
+        # Precursory checks to see if a collision check is necessary
         if vehicle.crate_lift is o: continue
         if o in vehicle.trunk_contents: continue
 
-        return check_collision(v_pts, o_pts)
+        if check_collision(v_pts, o_pts):
+            return True
 
     return False
 
 def check_obj_collisions(obj, external_objects, timestep):
     '''
-    Checks collisions between the provided object and the list of objects at the given timestep.
+    Checks collisions between the provided object and the list of objects at the given timestep(s).
     Does not check if the object is being carried by a vehicle.
     '''
-    pts_1 = vehicle.get_points(timestep)
+    pts_1 = obj.get_points(timestep) if type(timestep) is int else [pt for pt in obj.get_points(t) for t in timestep]
 
     for o in external_objects:
         if o is obj: continue
 
-        pts_2 = o.get_points(timestep)
-        return check_collision(pts_1, pts_2)
+        pts_2 = o.get_points(timestep) if type(timestep) is int else [pt for pt in o.get_points(t) for t in timestep]
+        if check_collision(pts_1, pts_2):
+            return True
 
     return False

@@ -35,7 +35,7 @@ class Vehicle(DrivingObject):
         # What road this vehicle is on, used for controlling external vehicles
         self.road = road
 
-        super(Vehicles, self).__init__(x, y, theta)
+        super(Vehicles, self).__init__(x, y, theta, horizon)
 
     def get_points(self, time, dist=0):
         '''

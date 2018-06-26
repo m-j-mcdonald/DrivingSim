@@ -17,6 +17,7 @@ class Road(DrivingSurface):
         '''
         self.length = length
         self.direction = direction
+        self.slope = np.tan(direction) if np.abs(direction - np.pi) < theta_tol and np.abs(direction - 3 * np.pi / 2) < theta_tol else np.inf
         self.num_lanes = num_lanes
         self.lane_width = lane_width
         self.rot_mat = np.array([[np.cos(direction), -np.sin(direction)], 
@@ -113,4 +114,38 @@ class Road(DrivingSurface):
             theta_diff += 2 * np.pi
 
         return np.r_[self.inv_rot_mat.dot(vec), theta]
+
+    def get_intersection(self, road):
+        if self.slope == road.slope:
+            return (np.nan, np.nan)
+
+        if np.isinf(self.slope):
+            intersection = (self.x, road.slope * (self.x - road.x) + road.y)
+        elif np.isinf(road.slope):
+            intersection = (road.x, self.slope * (road.x - self.x) + self.y)
+        else:
+            x = (road.y - self.y - road.slope * road.x + self.slope * self.x) / (self.slope - road.slope)
+            y = self.slope * (x - self.x) + self.y
+            intersection = (x, y)
+
+        if np.all(self.to(intersection == 0)) and np.all(road.to(intersection) == 0):
+            return intersection
+
+        return (np.nan, np.nan)
+
+    def to_intersection(self, x, y, road):
+        intersection = self.get_intersection(road)
+        if np.any(np.isnan(intersection)):
+            return np.inf, np.inf
+
+        return intersection[0] - x, intersection[1] - y
+        
+    def at_intersection(self, x, y, road, dist=stopping_len):
+        road_width = road.num_lanes * road.lane_width / 2.
+        to_intersection = np.linalg.norm(self.to_intersection(x, y, road))
+        is_on = self.is_on(x, y)
+
+        in_intersection = is_on and to_intersection < road_width
+        stopped_at_intersection = not in_intersection and is_on and to_intersection < road_width + dist
+        return in_intersection, stopped_at_intersection
         

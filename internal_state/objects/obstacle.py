@@ -7,7 +7,7 @@ class Obstacle(DrivingObject):
     '''
     Class representing an obstacle vehicles must avoid
     '''
-    def __init__(self, x, y, points, obstacle_id):
+    def __init__(self, x, y, horizon, points, obstacle_id):
         '''
         x: The x coordinate which the obstacle starts at and which all points are reference to
         y: The y coordinate which the obstacle starts at and which all points are reference to
@@ -21,7 +21,7 @@ class Obstacle(DrivingObject):
 
         self.id = obstacle_ids
 
-        super(Obstacle, self).__init__(x, y, 0)
+        super(Obstacle, self).__init__(x, y, 0, horizon)
 
     def get_points(self, time, dist=0):
         '''

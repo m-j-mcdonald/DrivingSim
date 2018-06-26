@@ -7,13 +7,13 @@ class Crate(DrivingObject):
     '''
     Class representing a crate which a vehicle may move
     '''
-    def __init__(self, horizon, length, width, crate_id):
+    def __init__(self, x, y, theta, horizon, length, width, crate_id):
         self.length = length
         self.width = width
         self.id = crate_id
         self.vehicle = None # Vehicle currently holding crate
 
-        super(Crate, self).__init__(0, 0, 0)
+        super(Crate, self).__init__(x, y, theta, horizon)
 
     def get_points(self, time, dist=0):
         '''

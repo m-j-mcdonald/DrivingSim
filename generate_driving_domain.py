@@ -93,7 +93,13 @@ dp.add('ObstacleStationary', ['Obstacle'])
 dp.add('CrateStationary', ['Crate'])
 dp.add('IsMP', ['Vehicle'])
 dp.add('OnRoad', ['Vehicle', 'Road'])
-dp.add('InLane', ['Vehicle', 'VehiclePose', 'LaneNumber'])
+dp.add('InLane', ['Vehicle', 'Road', 'LaneNumber'])
+dp.add('ExternalInLane', ['Vehicle', 'Road', 'LaneNumber'])
+dp.add('LeftOfLane', ['Vehicle', 'Road', 'LaneNumber'])
+dp.add('RightOfLane', ['Vehicle', 'Road', 'LaneNumber'])
+dp.add('PoseInLane', ['VehiclePose', 'Road', 'LaneNumber'])
+dp.add('PoseLeftOfLane', ['VehiclePose', 'Road', 'LaneNumber'])
+dp.add('PoseRightOfLane', ['VehiclePose', 'Road', 'LaneNumber'])
 dp.add('VelLowerLimit', ['Vehicle', 'Limit'])
 dp.add('VelUpperLimit', ['Vehicle', 'Limit'])
 dp.add('AccLowerLimit', ['Vehicle', 'Limit'])
@@ -145,56 +151,215 @@ class Action(object):
 
         return "Action " + self.name + ' ' + str(self.timesteps) + ': ' + self.args + ' ' + cond_str + ' ' + time_str
 
-class DriveDownRoad(Action):
-    def __init__(self):
-        self.name = 'drive_down_road'
-        self.timesteps = 100
-        end = self.timesteps - 1
-        self.args = '(?vehicle - Vehicle ?road - Road ?start - VehiclePose ?end - VehiclePose ?vu_limit - Limit ?vl_limit - Limit ?au_limit - Limit ?al_limit - Limit)'
-        
+class DrivingAction(Action):
+    def __init__(self, name, timesteps, pre, post, args):
+        self.name = name
+        self.timesteps = timesteps
+        end = timesteps - 1
+
+        self.args = args
+
         self.pre = [\
             ('(VehicleAt ?vehicle ?start)', '{}:{}'.format(0, 0)),
-            ('(OnRoad ?vehicle ?road)', '{};{}'.format(0, end)),
             ('(forall (?obj - Vehicle)\
-                (XValid ?vehicle))', '{};{}'.format(0, end-1)),
+                (XValid ?vehicle))', '{}:{}'.format(0, end-1)),
             ('(forall (?obj - Vehicle)\
-                (YValid ?vehicle))', '{};{}'.format(0, end-1)),
+                (YValid ?vehicle))', '{}:{}'.format(0, end-1)),
             ('(forall (?obj - Vehicle)\
-                (ThetaValid ?vehicle))', '{};{}'.format(0, end-1)),
+                (ThetaValid ?vehicle))', '{}:{}'.format(0, end-1)),
             ('(forall (?obj - Vehicle)\
-                (VelValid ?vehicle))', '{};{}'.format(0, end-1)),
+                (VelValid ?vehicle))', '{}:{}'.format(0, end-1)),
             ('(forall (?obj - Vehicle)\
-                (PhiValid ?vehicle))', '{};{}'.format(0, end-1)),
-            ('(forall (?obj - Vehicle)\
-                (VelUpperLimit ?vehicle ?vu_limit))', '{};{}'.format(0, end)),
-            ('(forall (?obj - Vehicle)\
-                (VelLowerLimit ?vehicle ?vl_limit))', '{};{}'.format(0, end)),
-            ('(forall (?obj - Vehicle)\
-                (AccUpperLimit ?vehicle ?au_limit))', '{};{}'.format(0, end)),
-            ('(forall (?obj - Vehicle)\
-                (AccLowerLimit ?vehicle ?al_limit))', '{};{}'.format(0, end)),
+                (PhiValid ?vehicle))', '{}:{}'.format(0, end-1)),
             ('(forall (?obj - Vehicle)\
                 (VehicleVehiclePathCollision ?vehicle ?obj))', '{}:{}'.format(0, end-1)),
             ('(forall (?obj - Obstacle)\
                 (VehicleObstaclePathCollision ?vehicle ?obj))', '{}:{}'.format(0, end-1)),
-            ('(forall (?obj - Obstacle) (ObstacleStationary ?obj)))', '{}:{}'.format(0, end-1)),
             ('(forall (?obj - Crate)\
                 (VehicleCratePathCollision ?vehicle ?obj))', '{}:{}'.format(0, end-1)),
-            ('(forall (?obj - Crate) (CrateStationary ?obj)))', '{}:{}'.format(0, end-1)),
-            ('(forall (?sign - StopSign)\
-                (forall (?obj - Vehicle)\
-                    (StopAtStopSign ?obj ?sign)))', '{}:{}'.format(0, end-1)),
             ('(forall (?obj - Vehicle)\
                 (ExternalDriveDownRoad ?vehicle))', '{}:{}'.format(0, end-1)),
         ]
+        self.pre.extend(pre)
 
         self.eff = [\
             (' (not (VehicleAt ?vehicle ?start))', '{}:{}'.format(end, end-1)),
             ('(VehicleAt ?vehicle ?end)', '{}:{}'.format(end, end)),
-            ('(OnRoad ?vehicle ?road)', '{}:{}'.format(end, end-1)),
             ('(forall (?obj - Vehicle)\
                 (ExternalVehiclePastRoadEnd ?vehicle))', '{}:{}'.format(end, end)),
-            ('(HLNoCollisions ?vehicle)', '{}:{}'.format(end, end-1))]
+        ]
+        self.eff.extend(post)
 
-# TODO: Follow, MergeLeft, MergeRight, Pass, StopAtSign, Turn, Wait
+class DriveDownRoad(DrivingAction):
+    def __init__(self):
+        name = 'drive_down_road'
+        timesteps = 100
+        end = timesteps - 1
+        args = '(?vehicle - Vehicle ?road - Road ?start - VehiclePose ?end - VehiclePose ?vu_limit - Limit ?vl_limit - Limit ?au_limit - Limit ?al_limit - Limit)'
+        
+        pre = [\
+                ('(OnRoad ?vehicle ?road)', '{}:{}'.format(0, end)),
+                ('(forall (?obj - Vehicle)\
+                    (VelUpperLimit ?vehicle ?vu_limit))', '{}:{}'.format(0, end)),
+                ('(forall (?obj - Vehicle)\
+                    (VelLowerLimit ?vehicle ?vl_limit))', '{}:{}'.format(0, end)),
+                ('(forall (?obj - Vehicle)\
+                    (AccUpperLimit ?vehicle ?au_limit))', '{}:{}'.format(0, end)),
+                ('(forall (?obj - Vehicle)\
+                    (AccLowerLimit ?vehicle ?al_limit))', '{}:{}'.format(0, end)),
+                ('(forall (?obj - Obstacle) (ObstacleStationary ?obj)))', '{}:{}'.format(0, end-1)),
+                ('(forall (?obj - Crate) (CrateStationary ?obj)))', '{}:{}'.format(0, end-1)),
+                ('(forall (?sign - StopSign)\
+                    (forall (?obj - Vehicle)\
+                        (StopAtStopSign ?obj ?sign)))', '{}:{}'.format(0, end-1)),
+              ]
+
+        eff = [\
+                ('(OnRoad ?vehicle ?road)', '{}:{}'.format(end, end-1)),
+              ]
+
+        super(DriveDownRoad, self).__init__(name, timesteps, pre, eff, args)
+
+class Follow(Action):
+    def __init__(self):
+        name = 'follow'
+        timesteps = 100
+        end = timesteps - 1
+        args = '(?vehicle - Vehicle ?external - Vehicle ?road - Road \
+                 ?start - VehiclePose ?end - VehiclePose ?external_start - VehiclePose \
+                 ?lane_n - LaneNumber ?vu_limit - Limit ?vl_limit - Limit \
+                 ?au_limit - Limit ?al_limit - Limit)'      
+
+        pre = [\
+                ('(OnRoad ?vehicle ?road)', '{}:{}'.format(0, end)),
+                ('(InLane ?vehicle ?road ?lane_n)', '{}:{}'.format(0, end)),
+                ('(InLane ?external ?road ?lane_n)', '{}:{}'.format(0, end)),
+                ('(PoseInLane ?end ?road ?lane_n)', '{}:{}'.format(0, 0)),
+                ('(forall (?obj - Vehicle)\
+                    (VelUpperLimit ?vehicle ?vu_limit))', '{}:{}'.format(0, end)),
+                ('(forall (?obj - Vehicle)\
+                    (VelLowerLimit ?vehicle ?vl_limit))', '{}:{}'.format(0, end)),
+                ('(forall (?obj - Vehicle)\
+                    (AccUpperLimit ?vehicle ?au_limit))', '{}:{}'.format(0, end)),
+                ('(forall (?obj - Vehicle)\
+                    (AccLowerLimit ?vehicle ?al_limit))', '{}:{}'.format(0, end)),
+                ('(forall (?obj - Obstacle) (ObstacleStationary ?obj)))', '{}:{}'.format(0, end-1)),
+                ('(forall (?obj - Crate) (CrateStationary ?obj)))', '{}:{}'.format(0, end-1)),
+                ('(forall (?sign - StopSign)\
+                    (forall (?obj - Vehicle)\
+                        (StopAtStopSign ?obj ?sign)))', '{}:{}'.format(0, end-1)),
+              ]
+
+        eff = [\
+                ('(OnRoad ?vehicle ?road)', '{}:{}'.format(end, end-1)),
+                ('(InLane ?vehicle ?road ?lane_n)', '{}:{}'.format(end, end-1)),
+              ]
+
+        super(Follow, self).__init__(name, timesteps, pre, eff, args)
+
+class Pass(Action):
+    def __init__(self):
+        name = 'pass'
+        timesteps = 100
+        end = timesteps - 1
+        args = '(?vehicle - Vehicle ?external - Vehicle ?road - Road \
+                 ?start - VehiclePose ?end - VehiclePose ?external_start - VehiclePose \
+                 ?lane_n - LaneNumber ?vu_limit - Limit ?vl_limit - Limit \
+                 ?au_limit - Limit ?al_limit - Limit)'      
+
+        pre = [\
+                ('(OnRoad ?vehicle ?road)', '{}:{}'.format(0, end)),
+                ('(InLane ?external ?road ?lane_n)', '{}:{}'.format(0, end)),
+                ('(forall (?obj - Vehicle)\
+                    (VelUpperLimit ?vehicle ?vu_limit))', '{}:{}'.format(0, end)),
+                ('(forall (?obj - Vehicle)\
+                    (VelLowerLimit ?vehicle ?vl_limit))', '{}:{}'.format(0, end)),
+                ('(forall (?obj - Vehicle)\
+                    (AccUpperLimit ?vehicle ?au_limit))', '{}:{}'.format(0, end)),
+                ('(forall (?obj - Vehicle)\
+                    (AccLowerLimit ?vehicle ?al_limit))', '{}:{}'.format(0, end)),
+                ('(forall (?obj - Obstacle) (ObstacleStationary ?obj)))', '{}:{}'.format(0, end-1)),
+                ('(forall (?obj - Crate) (CrateStationary ?obj)))', '{}:{}'.format(0, end-1)),
+                ('(forall (?sign - StopSign)\
+                    (forall (?obj - Vehicle)\
+                        (StopAtStopSign ?obj ?sign)))', '{}:{}'.format(0, end-1)),
+              ]
+
+        eff = [\
+                ('(OnRoad ?vehicle ?road)', '{}:{}'.format(end, end-1)),
+              ]
+
+        super(Pass, self).__init__(name, timesteps, pre, eff, args)
+
+class Left(Action):
+    def __init__(self):
+        name = 'left'
+        timesteps = 50
+        end = timesteps - 1
+        args = '(?vehicle - Vehicle ?road - Road ?start - VehiclePose ?end - VehiclePose \
+                 ?lane_n - LaneNumber ?merge_dist - Distance \
+                 ?vu_limit - Limit ?vl_limit - Limit ?au_limit - Limit ?al_limit - Limit)'      
+
+        pre = [\
+                ('(OnRoad ?vehicle ?road)', '{}:{}'.format(0, end)),
+                ('(PoseLeftOfLane ?end ?road ?lane_n)', '{}:{}'.format(end, end)),
+                ('(PosesWithinDistance ?start ?end ?merge_dist)', '{}:{}'.format(0, 0))
+                ('(forall (?obj - Vehicle)\
+                    (VelUpperLimit ?vehicle ?vu_limit))', '{}:{}'.format(0, end)),
+                ('(forall (?obj - Vehicle)\
+                    (VelLowerLimit ?vehicle ?vl_limit))', '{}:{}'.format(0, end)),
+                ('(forall (?obj - Vehicle)\
+                    (AccUpperLimit ?vehicle ?au_limit))', '{}:{}'.format(0, end)),
+                ('(forall (?obj - Vehicle)\
+                    (AccLowerLimit ?vehicle ?al_limit))', '{}:{}'.format(0, end)),
+                ('(forall (?obj - Obstacle) (ObstacleStationary ?obj)))', '{}:{}'.format(0, end-1)),
+                ('(forall (?obj - Crate) (CrateStationary ?obj)))', '{}:{}'.format(0, end-1)),
+                ('(forall (?sign - StopSign)\
+                    (forall (?obj - Vehicle)\
+                        (StopAtStopSign ?obj ?sign)))', '{}:{}'.format(0, end-1)),
+              ]
+
+        eff = [\
+                ('(OnRoad ?vehicle ?road)', '{}:{}'.format(end, end-1)),
+                ('(LeftOfLane ?vehicle ?road ?lane_n)', '{}:{}'.format(end, end)),
+              ]
+
+        super(Left, self).__init__(name, timesteps, pre, eff, args)
+
+class Right(Action):
+    def __init__(self):
+        name = 'right'
+        timesteps = 50
+        end = timesteps - 1
+        args = '(?vehicle - Vehicle ?road - Road ?start - VehiclePose ?end - VehiclePose \
+                 ?lane_n - LaneNumber ?merge_dist - Distance \
+                 ?vu_limit - Limit ?vl_limit - Limit ?au_limit - Limit ?al_limit - Limit)'      
+
+        pre = [\
+                ('(OnRoad ?vehicle ?road)', '{}:{}'.format(0, end)),
+                ('(PoseRightOfLane ?end ?road ?lane_n)', '{}:{}'.format(end, end)),
+                ('(PosesWithinDistance ?start ?end ?merge_dist)', '{}:{}'.format(0, 0))
+                ('(forall (?obj - Vehicle)\
+                    (VelUpperLimit ?vehicle ?vu_limit))', '{}:{}'.format(0, end)),
+                ('(forall (?obj - Vehicle)\
+                    (VelLowerLimit ?vehicle ?vl_limit))', '{}:{}'.format(0, end)),
+                ('(forall (?obj - Vehicle)\
+                    (AccUpperLimit ?vehicle ?au_limit))', '{}:{}'.format(0, end)),
+                ('(forall (?obj - Vehicle)\
+                    (AccLowerLimit ?vehicle ?al_limit))', '{}:{}'.format(0, end)),
+                ('(forall (?obj - Obstacle) (ObstacleStationary ?obj)))', '{}:{}'.format(0, end-1)),
+                ('(forall (?obj - Crate) (CrateStationary ?obj)))', '{}:{}'.format(0, end-1)),
+                ('(forall (?sign - StopSign)\
+                    (forall (?obj - Vehicle)\
+                        (StopAtStopSign ?obj ?sign)))', '{}:{}'.format(0, end-1)),
+              ]
+
+        eff = [\
+                ('(OnRoad ?vehicle ?road)', '{}:{}'.format(end, end-1)),
+                ('(RightOfLane ?vehicle ?road ?lane_n)', '{}:{}'.format(end, end)),
+              ]
+
+        super(Right, self).__init__(name, timesteps, pre, eff, args)
+
+# TODO: StopAtSign, Turn, Wait
 # tODO: Variants with grasping, shipping

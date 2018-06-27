@@ -18,6 +18,7 @@ class Obstacle(DrivingObject):
         #Only keep the points that define the convex hull
         hull = ConvexHull(points)
         self.points = hull.points[hull.vertices]
+        self.color = 'k'
 
         self.id = obstacle_ids
 

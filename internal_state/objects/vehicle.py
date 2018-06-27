@@ -1,16 +1,16 @@
 from matplotlib.patches import Polygon
-import numy as np
-from sciy.spatial import ConvexHull
+import numpy as np
+from scipy.spatial import ConvexHull
 
-from internal_state.collision_utils import *
-from internal_state.constants import *
+from driving_utils.collision_utils import *
+from driving_utils.constants import *
 from internal_state.objects.object import DrivingObject
 
 class Vehicle(DrivingObject):
     '''
     Class representing a single vehicle on the road
     '''
-    def __init__(self, sim, horizon, x=0., y=0., theta=0., wheelbase=wheelbase, width=vehicle_width, is_user=False, road=None):
+    def __init__(self, sim, horizon, x=5., y=5., theta=0., wheelbase=wheelbase, width=vehicle_width, is_user=False, road=None):
         self.sim = sim
         self.horizon = horizon
         self.v = np.zeros(horizon)
@@ -26,16 +26,17 @@ class Vehicle(DrivingObject):
 
         # Trunk occupies back half of vehicle
         # 10cm square grid; stores id of crate in each square (zero is no crate)
-        self.trunk = np.zeros((self.width*10, self.wheelbase*5))
+        self.trunk = np.zeros((int(self.width*10), (int(self.wheelbase*5))))
         self.trunk_contents = []
 
         # Whether this is a user controlled vehicle
         self.is_user = is_user
+        self.color = 'g' if self.is_user else 'b'
 
         # What road this vehicle is on, used for controlling external vehicles
         self.road = road
 
-        super(Vehicles, self).__init__(x, y, theta, horizon)
+        super(Vehicle, self).__init__(x, y, theta, horizon)
 
     def get_points(self, time, dist=0):
         '''
@@ -44,11 +45,11 @@ class Vehicle(DrivingObject):
         theta = self.theta[time]
         width = self.width + 2 * dist
         wheelbase = self.wheelbase + 2 * dist
-        pt1 = self.x + np.sin(theta) * width / 2., self.y - np.cos(theta) * width/2
-        pt2 = self.x - np.sin(theta) * width / 2., self.y + np.cos(theta) * width/2
+        pt1 = self.x[time] + np.sin(theta) * width / 2., self.y[time] - np.cos(theta) * width/2
+        pt2 = self.x[time] - np.sin(theta) * width / 2., self.y[time] + np.cos(theta) * width/2
         pt3 = pt1[0] + np.cos(theta) * wheelbase, pt1[1] + np.sin(theta) * wheelbase
         pt4 = pt2[0] + np.cos(theta) * wheelbase, pt2[1] + np.sin(theta) * wheelbase
-        return pt1, pt2, pt3, pt4
+        return np.array([pt1, pt2, pt4, pt3])
 
     def vehicle_front(self, time):
         return self.x[time] + np.cos(self.theta[time]) * self.wheelbase, self.y[time] + np.sin(self.theta[time]) * self.wheelbase
@@ -175,7 +176,7 @@ class Vehicle(DrivingObject):
     def take_from_other_trunk(self, vehicle, crate, time):
         front_x, front_y = self.vehicle_front(time)
         if vehicle.in_trunk(crate) and \
-           self.crate_lift = None and np.any(vehicle.trunk == crate.id) and \
+           self.crate_lift == None and np.any(vehicle.trunk == crate.id) and \
            (front_x - vehicle.x[time]) ** 2 + (front_y - vehicle.y[time]) ** 2 < 1.5:
 
             vehicle.trunk[vehicle.trunk == crate.id] = 0

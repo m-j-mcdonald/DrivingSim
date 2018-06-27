@@ -12,6 +12,7 @@ class Crate(DrivingObject):
         self.width = width
         self.id = crate_id
         self.vehicle = None # Vehicle currently holding crate
+        self.color = 'tan'
 
         super(Crate, self).__init__(x, y, theta, horizon)
 

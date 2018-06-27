@@ -1,7 +1,7 @@
 from matplotlib.patches import Rectangle
 import numpy as np
 
-from internal_state.constants import *
+from driving_utils.constants import *
 from internal_state.surfaces.surface import DrivingSurface
 
 class Road(DrivingSurface):
@@ -24,7 +24,7 @@ class Road(DrivingSurface):
                                  [np.sin(direction), np.cos(direction)]])
         self.inv_rot_mat = np.array([[np.cos(direction), np.sin(direction)], 
                                      [-np.sin(direction), np.cos(direction)]])
-        self.rot_origin = np.dot(self.rot_mat, np.array([self.x, self.y]))
+        self.rot_origin = np.dot(self.rot_mat, np.array([x, y]))
 
         super(Road, self).__init__(x, y)
 
@@ -48,14 +48,16 @@ class Road(DrivingSurface):
 
         return np.array(coords, dtype='int32')
 
-    def get_patches(self):
+    def get_patches(self, scale, unused):
         '''
         Return the Matplotlib patches for this road's lanes.
         Used for rendering purposes.
         '''
-        lanes = self.get_lane_lower_lefts()
+        lanes = self.get_lane_lower_lefts() * scale
+        rects = []
+
         for lane in lanes:
-            rects.append(Rectanle(((lane[0], lane[1]), self.length, self.lane_width, self.direction)))
+            rects.append(Rectangle((lane[0], lane[1]), self.length * scale[0], self.lane_width * scale[1], self.direction, edgecolor='k', facecolor='w'))
             
         return rects
 

@@ -1,10 +1,10 @@
 import tensorflow as tf
 
-from internal_state.collision_utils import *
-from internal_state.constants import *
 from internal_state.dynamics import *
 from internal_state.objects.vehicle import Vehicle
-from utils.poly_utils import *
+from driving_utils.collision_utils import *
+from driving_utils.constants import *
+from driving_utils.poly_utils import *
 
 class SimulatorState:
     '''
@@ -29,6 +29,9 @@ class SimulatorState:
 
     def set_time(self, time):
         self.t = time
+
+    def add_road(self, road):
+        self.roads.append(road)
 
     def step(self, u1, u2, vehicle):
         '''
@@ -57,7 +60,7 @@ class SimulatorState:
         A vehicle is on the road/lot if the intertial position of the rear axle lies on the road/lot.
         '''
         timestep = self.t / time_delta
-        if not timestep: return
+        if not timestep or x < 0 or x >= self.x_bound or y < 0 or y > self.y_bound: return
 
         old_x = vehicle.x[timestep-1]
         old_y = vehicle.y[timestep-1]

@@ -1,11 +1,11 @@
 import numpy as np
 
-class DrivingSurface:
+class DrivingSurface(object):
     def __init__(self, x, y):
         self.x = x
         self.y = y
 
-    def get_patches(self):
+    def get_patches(self, unused):
         '''
         Return the Matplotlib patches for this surface at a given timestep.
         Used for rendering purposes.

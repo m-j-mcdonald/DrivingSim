@@ -10,6 +10,22 @@ MOVE_FACTOR = 2
 END_DIST = 4
 COL_DIST = 0.5
 
+def add_to_attr_inds_and_res(t, attr_inds, res, param, attr_name_val_tuples):
+    if param.is_symbol():
+        t = 0
+
+    for attr_name, val in attr_name_val_tuples:
+        inds = np.where(param._free_attrs[attr_name][:, t])[0]
+        getattr(param, attr_name)[inds, t] = val[inds]
+
+        if param in attr_inds:
+            res[param].extend(val[inds].flatten().tolist())
+            attr_inds[param].append((attr_name, inds, t))
+            
+        else:
+            res[param] = val[inds].flatten().tolist()
+            attr_inds[param] = [(attr_name, inds, t)]
+
 class DrivingPredicate(ExprPredicate):
     def __init__(self, name, e, attr_inds, params, expected_param_types, active_range, sim, priority):
         self.sim = sim

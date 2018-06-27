@@ -13,3 +13,5 @@ brake_lower_limit = -2 # Limit on braking acceleration
 vehicle_width = 2.0
 
 theta_tol = 0.001 # Minimum difference between two angles before they are considered equivalent
+
+PIXELS_PER_M = 100

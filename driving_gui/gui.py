@@ -13,8 +13,8 @@ class GUI:
         self.state = sim_state
         self.fig = plt.figure(figsize=(8, 6), dpi=100)
         self.ax = self.fig.add_subplot(111)
-        self.ax.set_xlim(self.state.x_bound)
-        self.ax.set_ylim(self.state.y_bound)
+        self.ax.set_xlim(0, self.state.x_bound)
+        self.ax.set_ylim(0, self.state.y_bound)
         self.pixel_width, self.pixel_height = self.fig.get_size_inches() * self.fig.dpi
         self.scale = 1., 1.
 
@@ -57,29 +57,6 @@ class GUI:
             self.add_timestep(time)
         else:
             plt.close()
-
-    # def get_relative_offsets(self, time):
-    #     '''
-    #     Used to place the user vehicle at the center of the screen.
-    #     '''
-    #     center_x = self.state.user_vehicle.x[time] * PIXELS_PER_M
-    #     center_y = self.state.user_vehicle.y[time] * PIXELS_PER_M
-
-    #     #TODO
-
-    #     raise NotImplementedError
-
-    # def add_collection(self, to_render, time, zorder=0):
-    #     '''
-    #     Add all patches for a given set of objects or surfaces
-    #     '''
-    #     patches = []
-    #     for r in to_render:
-    #         patches.extend(r.get_patches(self.scale, time))
-
-    #     col = PatchCollection(patches, match_original=True)
-    #     col.zorder = zorder
-    #     self.ax.add_collection(col)
 
     def add_collection(self, to_render, time, zorder=0):
         '''
@@ -150,5 +127,5 @@ class GUI:
         '''
         self.ax.clear()
         self.ax = self.fig.add_subplot(111)
-        self.ax.set_xlim(self.state.x_bound)
-        self.ax.set_ylim(self.state.y_bound)
+        self.ax.set_xlim(0, self.state.x_bound)
+        self.ax.set_ylim(0, self.state.y_bound)

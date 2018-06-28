@@ -6,6 +6,7 @@ class DrivingObject(object):
         self.x = x * np.ones(horizon, dtype='float32')
         self.y = y * np.ones(horizon, dtype='float32')
         self.theta = theta * np.ones(horizon, dtype='float32')
+        self.horizon = horizon
 
     def get_points(self, time, dist=0):
         '''
@@ -40,3 +41,16 @@ class DrivingObject(object):
         self.theta[time] = theta
 
         return old_x, old_y, old_theta
+
+    def update_horizon(self, horizon):
+        if self.horizon > horizon:
+            self.x = self.x[:horizon]
+            self.y = self.y[:horizon]
+            self.theta = self.theta[:horizon]
+
+        elif self.horizon < horizon:
+            self.x = np.pad(self.x, (0, horizon - self.horizon), mode='constant')
+            self.y = np.pad(self.y, (0, horizon), mode='constant')
+            self.theta = np.pad(self.theta, (0, horizon - self.horizon), mode='constant')
+
+        self.horizon = horizon

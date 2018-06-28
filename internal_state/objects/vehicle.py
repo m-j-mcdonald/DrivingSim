@@ -51,6 +51,9 @@ class Vehicle(DrivingObject):
         else:
             self not in self.sim.external_vehicles and self.sim.external_vehicles.append(self)
 
+        self.update_horizon(sim.horizon)
+        print self.horizon
+
     def set_road(self, road):
         self.road = road
 
@@ -81,6 +84,21 @@ class Vehicle(DrivingObject):
             crate.x[time], crate.y[time], crate.theta[time] = x, y, self.theta[time]
 
         return old_x, old_y, old_theta
+
+    def update_horizon(self, horizon):
+        if self.horizon > horizon:
+            self.v = self.v[:horizon]
+            self.phi = self.phi[:horizon]
+            self.u1 = self.u1[:horizon]
+            self.u2 = self.u2[:horizon]
+
+        elif self.horizon < horizon:
+            self.v = np.pad(self.v, (0, horizon - self.horizon), mode='constant')
+            self.phi = np.pad(self.phi, (0, horizon - self.horizon), mode='constant')
+            self.u1 = np.pad(self.u1, (0, horizon - self.horizon), mode='constant')
+            self.u2 = np.pad(self.u2, (0, horizon - self.horizon), mode='constant')
+
+        super(Vehicle, self).update_horizon(horizon)
 
     def pickup_closest_crate(self, crates, time):
         front_x, front_y = self.vehicle_front(time)

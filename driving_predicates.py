@@ -50,7 +50,7 @@ class HLNoCollisions(HLPred):
         self.spacial_anchor = False
 
     def check_if_true(self, sim):
-        return sim.check_all_collisions(sim.user_vehicle) or \
+        return np.any([sim.check_all_collisions(v) for v in sim.user_vehicles]) or \
                np.any([sim.check_all_collisions(v) for v in sim.external_vehicles])
 
 class HLCrateInTrunk(HLPred):
@@ -424,6 +424,23 @@ class PoseLeftOfLane(LeftOfLane):
 class PoseRightOfLane(RightOfLane):
     def __init__(self, name, params, expected_param_types, sim=None):
         pass
+
+class XY_Limit(DrivingPredicate):
+    def __init__(self, name, params, expected_param_types, sim=None):
+        assert len(params) == 3
+        self.obj, self.xlimit, self.ylimit = params
+        attr_inds = OrderedDict([(self.obj, [("xy", np.array([0, 1], dtype=np.int))]),
+                                 (self.xlimit, [("value", np.array([0], dtype=np.int))]),
+                                 (self.ylimit, [("value", np.array([0], dtype=np.int))])])
+
+        A = np.zeros((4,4))
+        A[:2,:2] = -np.eye(2)
+        A[:2,2:4] = np.eye(2)
+        A[2:4,:2] = -np.eye(2) 
+        b, val = np.zeros((4, 1)), np.zeros((4, 1))
+        e = LEqExpr(AffExpr(A, b), val)
+        super(Stationary, self).__init__(name, e, attr_inds, params, expected_param_types, sim=sim, priority=-2)
+        self.spacial_anchor = False
 
 class Limit(DrivingPredicate):
     def __init__(self, name, params, expected_param_types, sim=None):

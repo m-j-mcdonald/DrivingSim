@@ -15,6 +15,7 @@ class SimulatorState:
         self.x_bound = x_bound
         self.y_bound = y_bound
 
+        self.user_vehicles = []
         self.external_vehicles = []
         self.crates = []
         self.obstacles = []
@@ -25,13 +26,41 @@ class SimulatorState:
         self.t = 0
         self.sess = tf.Session()
 
-        self.user_vehicle = Vehicle(self, horizon, wheelbase=wheelbase, width=vehicle_width)
-
     def set_time(self, time):
         self.t = time
 
+    def add(self, o_type, obj):
+        getattr(self, 'add_{}'.format(o_type.lower()))(obj)
+
     def add_road(self, road):
         self.roads.append(road)
+
+    def add_lot(self, lot):
+        self.lots.append(lot)
+
+    def add_stop_sign(self, sign):
+        self.stop_signs.append(sign)
+
+    def add_crate(self, crate):
+        self.crates.append(crate)
+
+    def add_obstacle(self, obstacle):
+        self.obstacles.append(obstacle)
+
+    def add_vehicle(self, vehicle):
+        if vehicle.is_user:
+            self.user_vehicles.append(vehicle)
+        else:
+            self.external_vehicles.append(vehicle)
+
+    def clear(self):
+        self.user_vehicles = []
+        self.external_vehicles = []
+        self.crates = []
+        self.obstacles = []
+        self.stop_signs = []
+        self.roads = []
+        self.lots = []
 
     def step(self, u1, u2, vehicle):
         '''
@@ -90,4 +119,4 @@ class SimulatorState:
         return check_vehicle_collisions(vehicle, self.external_vehicles, timestep) or \
                check_vehicle_collisions(vehicle, self.obstacles, timestep) or \
                check_vehicle_collisions(vehicle, self.crates, timestep) or \
-               check_vehicle_collisions(vehicle, [self.user_vehicle], timestep)
+               check_vehicle_collisions(vehicle, self.user_vehicles, timestep)

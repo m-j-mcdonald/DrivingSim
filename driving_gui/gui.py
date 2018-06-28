@@ -39,16 +39,16 @@ class GUI:
         self.add_surfaces(time)
         plt.show()
 
-    def get_relative_offsets(self, time):
-        '''
-        Used to place the user vehicle at the center of the screen.
-        '''
-        center_x = self.state.user_vehicle.x[time] * PIXELS_PER_M
-        center_y = self.state.user_vehicle.y[time] * PIXELS_PER_M
+    # def get_relative_offsets(self, time):
+    #     '''
+    #     Used to place the user vehicle at the center of the screen.
+    #     '''
+    #     center_x = self.state.user_vehicle.x[time] * PIXELS_PER_M
+    #     center_y = self.state.user_vehicle.y[time] * PIXELS_PER_M
 
-        #TODO
+    #     #TODO
 
-        raise NotImplementedError
+    #     raise NotImplementedError
 
     # def add_collection(self, to_render, time, zorder=0):
     #     '''
@@ -78,8 +78,8 @@ class GUI:
         vehicles = self.state.external_vehicles
         self.add_collection(vehicles, time, 5)
 
-        user_vehicle = [self.state.user_vehicle]
-        self.add_collection(user_vehicle, time, 6)
+        vehicles = self.state.user_vehicles
+        self.add_collection(vehicles, time, 6)
 
     def add_crates(self, time):
         '''

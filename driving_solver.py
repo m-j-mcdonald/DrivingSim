@@ -191,7 +191,7 @@ class DrivingSolver(LLSolver):
         else:
             act, next_act = plan.actions[anum], None
 
-        vehicle = plan.params['user_vehicle']
+        vehicle = act.params[0]
 
         start_ts, end_ts = act.active_timesteps
 

@@ -8,7 +8,7 @@ class Lot(DrivingSurface):
     Class representing an open lot
     '''
 
-    def __init__(self, x, y, height, width):
+    def __init__(self, lot_id, x, y, height, width):
         '''
         x: The center of the lot along the east-west axis. Positive = east
         y: The center of the lot along the north-south axis. Positive = north
@@ -18,7 +18,7 @@ class Lot(DrivingSurface):
         self.width = width
         self.height = height
         
-        super(Lot, self).__init__(x, y)
+        super(Lot, self).__init__(lot_id, x, y)
 
     def get_patches(self, scale, unused):
         '''

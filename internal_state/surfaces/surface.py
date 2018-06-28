@@ -1,7 +1,8 @@
 import numpy as np
 
 class DrivingSurface(object):
-    def __init__(self, x, y):
+    def __init__(self, surface_id, x, y):
+        self.id = surface_id
         self.x = x
         self.y = y
 

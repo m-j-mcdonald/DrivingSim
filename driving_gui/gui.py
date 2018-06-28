@@ -99,14 +99,14 @@ class GUI:
         '''
         Add all roads to be rendered at a given timestep
         '''
-        roads = self.state.roads
+        roads = self.state.roads.values()
         self.add_collection(roads, time, 1)
 
     def add_lots(self, time):
         '''
         Add all lots to be rendered at a given timestep
         '''
-        lots = self.state.lots
+        lots = self.state.lots.values()
         self.add_collection(lots, time, 2)
 
     def add_objects(self, time):

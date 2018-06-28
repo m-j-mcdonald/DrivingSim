@@ -9,7 +9,7 @@ class Road(DrivingSurface):
     Class representing a one-directional road
     '''
 
-    def __init__(self, x, y, length, direction, num_lanes=num_lanes, lane_width=lane_width):
+    def __init__(self, road_id, x, y, length, direction, num_lanes=num_lanes, lane_width=lane_width):
         '''
         x: The center of the road (halfway across lanes) along the east-west axis. Positive = east
         y: The center of the road (halfway across lanes) along the north-south axis. Positive = north
@@ -26,7 +26,7 @@ class Road(DrivingSurface):
                                      [-np.sin(direction), np.cos(direction)]])
         self.rot_origin = np.dot(self.rot_mat, np.array([x, y]))
 
-        super(Road, self).__init__(x, y)
+        super(Road, self).__init__(road_id, x, y)
 
     def get_lower_left(self):
         '''

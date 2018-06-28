@@ -20,8 +20,8 @@ class SimulatorState:
         self.crates = []
         self.obstacles = []
         self.stop_signs = []
-        self.roads = []
-        self.lots = []
+        self.roads = {}
+        self.lots = {}
 
         self.t = 0
         self.sess = tf.Session()
@@ -33,10 +33,10 @@ class SimulatorState:
         getattr(self, 'add_{}'.format(o_type.lower()))(obj)
 
     def add_road(self, road):
-        self.roads.append(road)
+        self.roads[road.id] = road
 
     def add_lot(self, lot):
-        self.lots.append(lot)
+        self.lots[lot.id] = lot
 
     def add_stop_sign(self, sign):
         self.stop_signs.append(sign)
@@ -59,8 +59,8 @@ class SimulatorState:
         self.crates = []
         self.obstacles = []
         self.stop_signs = []
-        self.roads = []
-        self.lots = []
+        self.roads = {}
+        self.lots = {}
 
     def step(self, u1, u2, vehicle):
         '''
@@ -99,8 +99,8 @@ class SimulatorState:
         vehicle.y[timestep] = y
         vehicle.theta[timestep] = theta
 
-        on_road = np.any(map(lambda r: r.is_on(x, y), self.roads))
-        in_lot = np.any(map(lambda l: l.is_on(x, y), self.lots)) if not on_road else False
+        on_road = np.any(map(lambda r: r.is_on(x, y), self.roads.values()))
+        in_lot = np.any(map(lambda l: l.is_on(x, y), self.lots.values())) if not on_road else False
 
         if not (n_road or in_lot) or not check_all_collisions(self, vehicle):
             vehicle.x[timestep] = old_x

@@ -10,7 +10,7 @@ class Vehicle(DrivingObject):
     '''
     Class representing a single vehicle on the road
     '''
-    def __init__(self, sim, horizon, x=5., y=5., theta=0., wheelbase=wheelbase, width=vehicle_width, is_user=False, road=None):
+    def __init__(self, horizon, x=5., y=5., theta=0., wheelbase=wheelbase, width=vehicle_width, is_user=False, road=None, sim=None):
         self.sim = sim
         self.horizon = horizon
         self.v = np.zeros(horizon)
@@ -37,6 +37,22 @@ class Vehicle(DrivingObject):
         self.road = road
 
         super(Vehicle, self).__init__(x, y, theta, horizon)
+
+    def set_sim(self, sim):
+        if self.sim is not None:
+            if self.is_user:
+                self.sim.user_vehicles.remove(self)
+            else:
+                self.sim.external_vehicles.remove(self)
+
+        self.sim = sim
+        if self.is_user:
+            self not in self.sim.user_vehicles and self.sim.user_vehicles.append(self)
+        else:
+            self not in self.sim.external_vehicles self.sim.external_vehicles.append(self)
+
+    def set_road(self, road):
+        self.road = road
 
     def get_points(self, time, dist=0):
         '''
@@ -96,7 +112,7 @@ class Vehicle(DrivingObject):
 
             if check_obj_collisions(self.crate_lift, self.sim.obstacles, time) or \
                check_obj_collisions(self.crate_lift, self.sim.external_vehicles, time) or \
-               check_obj_collisions(self.crate_lift, [self.sim.user_vehicle], time):
+               check_obj_collisions(self.crate_lift, self.sim.user_vehicles, time):
 
                 self.crate_lift.x[time] = front_x
                 self.crate_lift.y[time] =  front_y
@@ -159,7 +175,7 @@ class Vehicle(DrivingObject):
 
         if check_obj_collisions(crate, self.sim.obstacles, time) or \
            check_obj_collisions(crate, self.sim.external_vehicles, time) or \
-           check_obj_collisions(crate, [self.sim.user_vehicle], time):
+           check_obj_collisions(crate, self.sim.user_vehicles, time):
 
             crate.x[time] = self.x[time]
             crate.y[time] =  self.y[time]

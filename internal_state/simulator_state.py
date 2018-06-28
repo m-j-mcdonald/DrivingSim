@@ -48,10 +48,7 @@ class SimulatorState:
         self.obstacles.append(obstacle)
 
     def add_vehicle(self, vehicle):
-        if vehicle.is_user:
-            self.user_vehicles.append(vehicle)
-        else:
-            self.external_vehicles.append(vehicle)
+        vehicle.set_sim(self)
 
     def clear(self):
         self.user_vehicles = []

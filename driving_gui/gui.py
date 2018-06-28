@@ -70,6 +70,7 @@ class GUI:
         for r in to_render:
             for p in r.get_patches(self.scale, time):
                 p.zorder = zorder
+                self.ax.add_artist(p)
 
     def add_vehicles(self, time):
         '''

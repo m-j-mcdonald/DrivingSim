@@ -24,11 +24,21 @@ class GUI:
         start_t: The time to start the simulator from
         real_t: How long the simulator pauses between timesteps
         '''
-        start_timestep = start_t / time_delta
-        end_timestep = self.state.horizon / time_delta
+        start_timestep = int(start_t)
+        end_timestep = int(self.state.horizon)
         interval = int(1000 * real_t)
         frames = range(start_timestep, end_timestep+1)
-        animation = FuncAnimation(self.fig, self.draw_timestep, frames=frames, interval=interval)
+
+        animation = FuncAnimation(self.fig, self.draw_frame, frames=frames, interval=interval)
+        plt.show()
+
+    def add_timestep(self, time):
+        '''
+        Draws the simulator's state at a given timestep
+        '''
+        self.clear()
+        self.add_objects(time)
+        self.add_surfaces(time)
 
     def draw_timestep(self, time):
         '''
@@ -38,6 +48,15 @@ class GUI:
         self.add_objects(time)
         self.add_surfaces(time)
         plt.show()
+
+    def draw_frame(self, time):
+        '''
+        Draws the current timestep if in range, otherwise closes the plot
+        '''
+        if time >= 0 and time < self.state.horizon:
+            self.add_timestep(time)
+        else:
+            plt.close()
 
     # def get_relative_offsets(self, time):
     #     '''

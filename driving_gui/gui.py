@@ -130,3 +130,6 @@ class GUI:
         Clears the previously rendered drawing
         '''
         self.ax.clear()
+        self.ax = self.fig.add_subplot(111)
+        self.ax.set_xlim(self.state.x_bound)
+        self.ax.set_ylim(self.state.y_bound)

@@ -8,5 +8,4 @@ sim.add_road(Road(0, 50, 50, 100, 0))
 sim.add_vehicle(Vehicle(2, 5, 5, 0, is_user=True))
 
 g = GUI(sim)
-#g.draw_timestep(0)
-
+g.draw_timestep(0)

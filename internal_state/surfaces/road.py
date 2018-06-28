@@ -115,7 +115,7 @@ class Road(DrivingSurface):
         while theta_diff < -np.pi:
             theta_diff += 2 * np.pi
 
-        return np.r_[self.inv_rot_mat.dot(vec), theta]
+        return self.inv_rot_mat.dot(vec), theta_diff
 
     def get_intersection(self, road):
         if self.slope == road.slope:

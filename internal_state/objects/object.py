@@ -26,7 +26,6 @@ class DrivingObject(object):
         Return the Matplotlib patches for this object at a given timestep.
         Used for rendering purposes.
         '''
-        print self.get_points(time) * scale
         return [Polygon(self.get_points(time) * scale, edgecolor='k', facecolor=self.color)]
 
     def update_xy_theta(self, x, y, theta, time):

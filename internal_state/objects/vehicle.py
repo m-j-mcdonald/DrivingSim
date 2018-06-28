@@ -49,7 +49,7 @@ class Vehicle(DrivingObject):
         if self.is_user:
             self not in self.sim.user_vehicles and self.sim.user_vehicles.append(self)
         else:
-            self not in self.sim.external_vehicles self.sim.external_vehicles.append(self)
+            self not in self.sim.external_vehicles and self.sim.external_vehicles.append(self)
 
     def set_road(self, road):
         self.road = road

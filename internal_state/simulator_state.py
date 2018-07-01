@@ -1,10 +1,10 @@
 import tensorflow as tf
 
-from internal_state.dynamics import *
-from internal_state.objects.vehicle import Vehicle
-from driving_utils.collision_utils import *
-from driving_utils.constants import *
-from driving_utils.poly_utils import *
+from driving_sim.internal_state.dynamics import *
+from driving_sim.internal_state.objects.vehicle import Vehicle
+from driving_sim.driving_utils.collision_utils import *
+from driving_sim.driving_utils.constants import *
+from driving_sim.driving_utils.poly_utils import *
 
 class SimulatorState:
     '''

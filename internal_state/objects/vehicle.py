@@ -2,9 +2,9 @@ from matplotlib.patches import Polygon
 import numpy as np
 from scipy.spatial import ConvexHull
 
-from driving_utils.collision_utils import *
-from driving_utils.constants import *
-from internal_state.objects.object import DrivingObject
+from driving_sim.driving_utils.collision_utils import *
+from driving_sim.driving_utils.constants import *
+from driving_sim.internal_state.objects.object import DrivingObject
 
 class Vehicle(DrivingObject):
     '''

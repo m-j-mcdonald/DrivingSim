@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.spatial import ConvexHull
 
-from internal_state.objects.object import DrivingObject
+from driving_sim.internal_state.objects.object import DrivingObject
 
 class Obstacle(DrivingObject):
     '''

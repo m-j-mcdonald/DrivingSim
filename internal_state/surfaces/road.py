@@ -1,8 +1,8 @@
 from matplotlib.patches import Rectangle
 import numpy as np
 
-from driving_utils.constants import *
-from internal_state.surfaces.surface import DrivingSurface
+from driving_sim.driving_utils.constants import *
+from driving_sim.internal_state.surfaces.surface import DrivingSurface
 
 class Road(DrivingSurface):
     '''

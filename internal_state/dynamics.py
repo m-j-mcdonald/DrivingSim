@@ -3,7 +3,7 @@ Definitions to perform dynamics calculations
 '''
 import tensorflow as tf
 
-from driving_utils.constants import time_delta
+from driving_sim.driving_utils.constants import time_delta
 
 init_op = tf.global_variables_initializer()
 

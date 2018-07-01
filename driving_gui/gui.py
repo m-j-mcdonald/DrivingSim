@@ -2,8 +2,8 @@ from matplotlib.animation import FuncAnimation
 from matplotlib.collections import PatchCollection
 import matplotlib.pyplot as plt
 
-from driving_gui.patch_utils import *
-from driving_utils.constants import *
+from driving_sim.driving_gui.patch_utils import *
+from driving_sim.driving_utils.constants import *
 
 class GUI:
     '''

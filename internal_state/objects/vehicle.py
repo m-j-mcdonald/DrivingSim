@@ -10,7 +10,7 @@ class Vehicle(DrivingObject):
     '''
     Class representing a single vehicle on the road
     '''
-    def __init__(self, horizon, x=5., y=5., theta=0., wheelbase=wheelbase, width=vehicle_width, is_user=False, road=None, sim=None):
+    def __init__(self, obj_id, horizon, x=5., y=5., theta=0., wheelbase=wheelbase, width=vehicle_width, is_user=False, road=None, sim=None):
         self.sim = sim
         self.horizon = horizon
         self.v = np.zeros(horizon)
@@ -36,7 +36,7 @@ class Vehicle(DrivingObject):
         # What road this vehicle is on, used for controlling external vehicles
         self.road = road
 
-        super(Vehicle, self).__init__(x, y, theta, horizon)
+        super(Vehicle, self).__init__(obj_id, x, y, theta, horizon)
 
     def set_sim(self, sim):
         if self.sim is not None:

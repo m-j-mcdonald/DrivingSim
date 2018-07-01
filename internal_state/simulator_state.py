@@ -15,15 +15,16 @@ class SimulatorState:
         self.x_bound = x_bound
         self.y_bound = y_bound
 
-        self.user_vehicles = []
+        self.user_vehicles     = []
         self.external_vehicles = []
-        self.crates = []
-        self.obstacles = []
-        self.stop_signs = []
-        self.roads = {}
-        self.lots = {}
+        self.crates            = []
+        self.obstacles         = []
+        self.stop_signs        = []
+        self.roads             = {}
+        self.lots              = {}
 
         self.t = 0
+
         self.sess = tf.Session()
 
     def set_time(self, time):
@@ -50,14 +51,23 @@ class SimulatorState:
     def add_vehicle(self, vehicle):
         vehicle.set_sim(self)
 
+    def update_horizon(self, horizon):
+        if horizon == self.horizon: return
+        
+        self.horizon = horizon
+        for obj in self.user_vehicles:     obj.update_horizon(horizon)
+        for obj in self.external_vehicles: obj.update_horizon(horizon)
+        for obj in self.obstacles:         obj.update_horizon(horizon)
+        for obj in self.crates:            obj.update_horizon(horizon)
+
     def clear(self):
-        self.user_vehicles = []
+        self.user_vehicles     = []
         self.external_vehicles = []
-        self.crates = []
-        self.obstacles = []
-        self.stop_signs = []
-        self.roads = {}
-        self.lots = {}
+        self.crates            = []
+        self.obstacles         = []
+        self.stop_signs        = []
+        self.roads             = {}
+        self.lots              = {}
 
     def step(self, u1, u2, vehicle):
         '''
@@ -65,19 +75,20 @@ class SimulatorState:
         '''
         timestep = self.t / time_delta
 
-        x = vehicle.x[timestep]
-        y = vehicle.y[timestep]
+        x     = vehicle.x[timestep]
+        y     = vehicle.y[timestep]
         theta = vehicle.theta[timestep]
-        v = vehicle.v[timestep]
-        phi = vehicle.phi[timestep]
+        v     = vehicle.v[timestep]
+        phi   = vehicle.phi[timestep]
 
         x_new, y_new, theta_new, v_new, phi_new = run_equations(x, y, theta, v, phi, wheelbase, u1, u2, self.sess)
 
-        self.t += time_delta
+        self.t   += time_delta
         timestep = self.t / time_delta
 
-        vehicle.v[timestep] = v_new
+        vehicle.v[timestep]   = v_new
         vehicle.phi[timestep] = phi_new
+
         self.update_xy_theta(x_new, y_new, theta_new, vehicle)
 
     def update_xy_theta(self, x, y, theta, vehicle):
@@ -88,20 +99,20 @@ class SimulatorState:
         timestep = self.t / time_delta
         if not timestep or x < 0 or x >= self.x_bound or y < 0 or y > self.y_bound: return
 
-        old_x = vehicle.x[timestep-1]
-        old_y = vehicle.y[timestep-1]
+        old_x     = vehicle.x[timestep-1]
+        old_y     = vehicle.y[timestep-1]
         old_theta = vehicle.theta[timestep-1]
 
-        vehicle.x[timestep] = x
-        vehicle.y[timestep] = y
+        vehicle.x[timestep]     = x
+        vehicle.y[timestep]     = y
         vehicle.theta[timestep] = theta
 
         on_road = np.any(map(lambda r: r.is_on(x, y), self.roads.values()))
-        in_lot = np.any(map(lambda l: l.is_on(x, y), self.lots.values())) if not on_road else False
+        in_lot  = np.any(map(lambda l: l.is_on(x, y), self.lots.values())) if not on_road else False
 
         if not (n_road or in_lot) or not check_all_collisions(self, vehicle):
-            vehicle.x[timestep] = old_x
-            vehicle.y[timestep] = old_y
+            vehicle.x[timestep]     = old_x
+            vehicle.y[timestep]     = old_y
             vehicle.theta[timestep] = old_theta
             return
         

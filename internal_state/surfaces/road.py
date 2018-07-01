@@ -15,18 +15,25 @@ class Road(DrivingSurface):
         y: The center of the road (halfway across lanes) along the north-south axis. Positive = north
         direction: The angle of the road where east is 0 degrees and north is 90 degrees
         '''
-        self.length = length
-        self.direction = direction
-        self.slope = np.tan(direction) if np.abs(direction - np.pi) < theta_tol and np.abs(direction - 3 * np.pi / 2) < theta_tol else np.inf
-        self.num_lanes = num_lanes
-        self.lane_width = lane_width
-        self.rot_mat = np.array([[np.cos(direction), -np.sin(direction)], 
-                                 [np.sin(direction), np.cos(direction)]])
-        self.inv_rot_mat = np.array([[np.cos(direction), np.sin(direction)], 
-                                     [-np.sin(direction), np.cos(direction)]])
-        self.rot_origin = np.dot(self.rot_mat, np.array([x, y]))
+        self.length      = length
+        self.direction   = direction
+        self.num_lanes   = num_lanes
+        self.lane_width  = lane_width
 
         super(Road, self).__init__(road_id, x, y)
+
+    @property
+    def direction(self):
+        return self._direction
+
+    @direction.setter
+    def direction(self, direction):
+        self._direction  = direction
+        self.slope       = np.tan(direction) if np.abs(direction - np.pi) < theta_tol and np.abs(direction - 3 * np.pi / 2) < theta_tol else np.inf
+        self.rot_mat     = np.array([[np.cos(direction), -np.sin(direction)], 
+                                     [np.sin(direction), np.cos(direction)]])
+        self.inv_rot_mat = np.array([[np.cos(direction), np.sin(direction)], 
+                                     [-np.sin(direction), np.cos(direction)]])
 
     def get_lower_left(self):
         '''
@@ -101,7 +108,7 @@ class Road(DrivingSurface):
         Returns the shortest vector that shifts x, y, theta to the center of the given lane facing down the road.
         Lanes are numbered starting from 0, with 0 being the leftmost lane.
         '''
-        rot_xy = self.rot_mat.dot(np.array([x, y]))
+        rot_xy   = self.rot_mat.dot(np.array([x, y]))
         center_y = (self.num_lanes/2. - lane_num - 0.5) * self.lane_width + self.y
         center_x = self.x
 
@@ -126,8 +133,8 @@ class Road(DrivingSurface):
         elif np.isinf(road.slope):
             intersection = (road.x, self.slope * (road.x - self.x) + self.y)
         else:
-            x = (road.y - self.y - road.slope * road.x + self.slope * self.x) / (self.slope - road.slope)
-            y = self.slope * (x - self.x) + self.y
+            x            = (road.y - self.y - road.slope * road.x + self.slope * self.x) / (self.slope - road.slope)
+            y            = self.slope * (x - self.x) + self.y
             intersection = (x, y)
 
         if np.all(self.to(intersection == 0)) and np.all(road.to(intersection) == 0):
@@ -143,11 +150,11 @@ class Road(DrivingSurface):
         return intersection[0] - x, intersection[1] - y
         
     def at_intersection(self, x, y, road, dist=stopping_len):
-        road_width = road.num_lanes * road.lane_width / 2.
+        road_width      = road.num_lanes * road.lane_width / 2.
         to_intersection = np.linalg.norm(self.to_intersection(x, y, road))
-        is_on = self.is_on(x, y)
+        is_on           = self.is_on(x, y)
 
-        in_intersection = is_on and to_intersection < road_width
+        in_intersection         = is_on and to_intersection < road_width
         stopped_at_intersection = not in_intersection and is_on and to_intersection < road_width + dist
         return in_intersection, stopped_at_intersection
         

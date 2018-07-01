@@ -2,11 +2,12 @@ from matplotlib.patches import Polygon
 import numpy as np
 
 class DrivingObject(object):
-    def __init__(self, x, y, theta, horizon):
-        self.x = x * np.ones(horizon, dtype='float32')
-        self.y = y * np.ones(horizon, dtype='float32')
-        self.theta = theta * np.ones(horizon, dtype='float32')
+    def __init__(self, obj_id, x, y, theta, horizon):
+        self.x       = x * np.ones(horizon, dtype='float32')
+        self.y       = y * np.ones(horizon, dtype='float32')
+        self.theta   = theta * np.ones(horizon, dtype='float32')
         self.horizon = horizon
+        self.id      = obj_id
 
     def get_points(self, time, dist=0):
         '''
@@ -33,24 +34,24 @@ class DrivingObject(object):
         '''
         Update the x, y, theta values for a given timestep.
         '''
-        old_x = self.x[time]
-        old_y = self.y[time]
-        old_theta = self.theta[time]
-        self.x[time] = x
-        self.x[time] = x
+        old_x            = self.x[time]
+        old_y            = self.y[time]
+        old_theta        = self.theta[time]
+        self.x[time]     = x
+        self.x[time]     = x
         self.theta[time] = theta
 
         return old_x, old_y, old_theta
 
     def update_horizon(self, horizon):
         if self.horizon > horizon:
-            self.x = self.x[:horizon]
-            self.y = self.y[:horizon]
+            self.x     = self.x[:horizon]
+            self.y     = self.y[:horizon]
             self.theta = self.theta[:horizon]
 
         elif self.horizon < horizon:
-            self.x = np.pad(self.x, (0, horizon - self.horizon), mode='constant')
-            self.y = np.pad(self.y, (0, horizon), mode='constant')
+            self.x     = np.pad(self.x, (0, horizon - self.horizon), mode='constant')
+            self.y     = np.pad(self.y, (0, horizon), mode='constant')
             self.theta = np.pad(self.theta, (0, horizon - self.horizon), mode='constant')
 
         self.horizon = horizon

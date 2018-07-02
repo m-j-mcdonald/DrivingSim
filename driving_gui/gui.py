@@ -2,8 +2,8 @@ from matplotlib.animation import FuncAnimation
 from matplotlib.collections import PatchCollection
 import matplotlib.pyplot as plt
 
-from driving_gui.patch_utils import *
-from driving_utils.constants import *
+from driving_sim.driving_gui.patch_utils import *
+from driving_sim.driving_utils.constants import *
 
 class GUI:
     '''
@@ -13,8 +13,8 @@ class GUI:
         self.state = sim_state
         self.fig = plt.figure(figsize=(8, 6), dpi=100)
         self.ax = self.fig.add_subplot(111)
-        self.ax.set_xlim(self.state.x_bound)
-        self.ax.set_ylim(self.state.y_bound)
+        self.ax.set_xlim(0, self.state.x_bound)
+        self.ax.set_ylim(0, self.state.y_bound)
         self.pixel_width, self.pixel_height = self.fig.get_size_inches() * self.fig.dpi
         self.scale = 1., 1.
 
@@ -24,11 +24,21 @@ class GUI:
         start_t: The time to start the simulator from
         real_t: How long the simulator pauses between timesteps
         '''
-        start_timestep = start_t / time_delta
-        end_timestep = self.state.horizon / time_delta
+        start_timestep = int(start_t)
+        end_timestep = int(self.state.horizon)
         interval = int(1000 * real_t)
         frames = range(start_timestep, end_timestep+1)
-        animation = FuncAnimation(self.fig, self.draw_timestep, frames=frames, interval=interval)
+
+        animation = FuncAnimation(self.fig, self.draw_frame, frames=frames, interval=interval)
+        plt.show()
+
+    def add_timestep(self, time):
+        '''
+        Draws the simulator's state at a given timestep
+        '''
+        self.clear()
+        self.add_objects(time)
+        self.add_surfaces(time)
 
     def draw_timestep(self, time):
         '''
@@ -39,28 +49,14 @@ class GUI:
         self.add_surfaces(time)
         plt.show()
 
-    # def get_relative_offsets(self, time):
-    #     '''
-    #     Used to place the user vehicle at the center of the screen.
-    #     '''
-    #     center_x = self.state.user_vehicle.x[time] * PIXELS_PER_M
-    #     center_y = self.state.user_vehicle.y[time] * PIXELS_PER_M
-
-    #     #TODO
-
-    #     raise NotImplementedError
-
-    # def add_collection(self, to_render, time, zorder=0):
-    #     '''
-    #     Add all patches for a given set of objects or surfaces
-    #     '''
-    #     patches = []
-    #     for r in to_render:
-    #         patches.extend(r.get_patches(self.scale, time))
-
-    #     col = PatchCollection(patches, match_original=True)
-    #     col.zorder = zorder
-    #     self.ax.add_collection(col)
+    def draw_frame(self, time):
+        '''
+        Draws the current timestep if in range, otherwise closes the plot
+        '''
+        if time >= 0 and time < self.state.horizon:
+            self.add_timestep(time)
+        else:
+            plt.close()
 
     def add_collection(self, to_render, time, zorder=0):
         '''
@@ -130,3 +126,6 @@ class GUI:
         Clears the previously rendered drawing
         '''
         self.ax.clear()
+        self.ax = self.fig.add_subplot(111)
+        self.ax.set_xlim(0, self.state.x_bound)
+        self.ax.set_ylim(0, self.state.y_bound)

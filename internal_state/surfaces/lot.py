@@ -1,7 +1,7 @@
 import numpy as np
 
-from internal_state.constants import *
-from internal_state.surfaces.surface import DrivingSurface
+from driving_sim.internal_state.constants import *
+from driving_sim.internal_state.surfaces.surface import DrivingSurface
 
 class Lot(DrivingSurface):
     '''

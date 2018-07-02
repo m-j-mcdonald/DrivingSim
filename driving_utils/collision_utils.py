@@ -1,4 +1,4 @@
-from driving_utils.poly_utils import *
+from driving_sim.driving_utils.poly_utils import *
 
 def check_collision(obj1_pts, obj2_pts):
     '''

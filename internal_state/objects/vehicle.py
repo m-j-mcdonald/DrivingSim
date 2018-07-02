@@ -2,15 +2,15 @@ from matplotlib.patches import Polygon
 import numpy as np
 from scipy.spatial import ConvexHull
 
-from driving_utils.collision_utils import *
-from driving_utils.constants import *
-from internal_state.objects.object import DrivingObject
+from driving_sim.driving_utils.collision_utils import *
+from driving_sim.driving_utils.constants import *
+from driving_sim.internal_state.objects.object import DrivingObject
 
 class Vehicle(DrivingObject):
     '''
     Class representing a single vehicle on the road
     '''
-    def __init__(self, horizon, x=5., y=5., theta=0., wheelbase=wheelbase, width=vehicle_width, is_user=False, road=None, sim=None):
+    def __init__(self, obj_id, horizon, x=5., y=5., theta=0., wheelbase=wheelbase, width=vehicle_width, is_user=False, road=None, sim=None):
         self.sim = sim
         self.horizon = horizon
         self.v = np.zeros(horizon)
@@ -36,7 +36,7 @@ class Vehicle(DrivingObject):
         # What road this vehicle is on, used for controlling external vehicles
         self.road = road
 
-        super(Vehicle, self).__init__(x, y, theta, horizon)
+        super(Vehicle, self).__init__(obj_id, x, y, theta, horizon)
 
     def set_sim(self, sim):
         if self.sim is not None:
@@ -50,6 +50,9 @@ class Vehicle(DrivingObject):
             self not in self.sim.user_vehicles and self.sim.user_vehicles.append(self)
         else:
             self not in self.sim.external_vehicles and self.sim.external_vehicles.append(self)
+
+        self.update_horizon(sim.horizon)
+        print self.horizon
 
     def set_road(self, road):
         self.road = road
@@ -81,6 +84,21 @@ class Vehicle(DrivingObject):
             crate.x[time], crate.y[time], crate.theta[time] = x, y, self.theta[time]
 
         return old_x, old_y, old_theta
+
+    def update_horizon(self, horizon):
+        if self.horizon > horizon:
+            self.v = self.v[:horizon]
+            self.phi = self.phi[:horizon]
+            self.u1 = self.u1[:horizon]
+            self.u2 = self.u2[:horizon]
+
+        elif self.horizon < horizon:
+            self.v = np.pad(self.v, (0, horizon - self.horizon), mode='constant')
+            self.phi = np.pad(self.phi, (0, horizon - self.horizon), mode='constant')
+            self.u1 = np.pad(self.u1, (0, horizon - self.horizon), mode='constant')
+            self.u2 = np.pad(self.u2, (0, horizon - self.horizon), mode='constant')
+
+        super(Vehicle, self).update_horizon(horizon)
 
     def pickup_closest_crate(self, crates, time):
         front_x, front_y = self.vehicle_front(time)

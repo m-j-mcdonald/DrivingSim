@@ -98,9 +98,10 @@ class Road(DrivingSurface):
         else:
             xvec_mult = 0
 
-        vec = [rot_xy[0] + xvec_mult * 0.5 * self.length + self.x,
-               rot_xy[1] + yvec_mult * 0.5 * self.num_lanes * self.lane_width + self.y]
+        vec = [-rot_xy[0] + xvec_mult * 0.5 * self.length + self.x,
+               -rot_xy[1] + yvec_mult * 0.5 * self.num_lanes * self.lane_width + self.y]
 
+        vec *= np.abs([[xvec_mult], [yvec_mult]])
         return self.inv_rot_mat.dot(vec)
 
     def to_lane(self, x, y, theta, lane_num):

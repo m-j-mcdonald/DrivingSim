@@ -12,18 +12,18 @@ tf_theta = tf.Variable(0, 'theta', dtype='float32')
 tf_v = tf.Variable(0, 'theta', dtype='float32')
 tf_phi = tf.Variable(0, 'theta', dtype='float32')
 tf_wheelbase = tf.Variable(0, 'wheelbase', dtype='float32')
-tf_time_delta = tf.constant(time_delta, dtype='float32', name='time_delta')
+tf_time_delta = tf.Variable(time_delta, dtype='float32', name='time_delta')
 
 tf_u1 = tf.Variable(0, 'u1', dtype='float32') # v_dot
 tf_u2 = tf.Variable(0, 'u2', dtype='float32') # phi_dot
 tf_v_new = tf.add(tf_v, tf.multiply(tf_time_delta, tf_u1))
 tf_phi_new = tf.add(tf_phi, tf.multiply(tf_time_delta, tf_u2))
 
-theta_dot = tf.multiply(tf_v, tf.div(tf.tan(tf_phi), tf_wheelbase))
+theta_dot = tf.multiply(tf_v_new, tf.div(tf.tan(tf_phi_new), tf_wheelbase))
 tf_theta_new = tf.add(tf_theta, tf.multiply(tf_time_delta, theta_dot))
 
-px_dot = tf.multiply(tf_v_new, tf.cos(tf_theta))
-py_dot = tf.multiply(tf_v_new, tf.sin(tf_theta))
+px_dot = tf.multiply(tf_v_new, tf.cos(tf_theta_new))
+py_dot = tf.multiply(tf_v_new, tf.sin(tf_theta_new))
 tf_px_new = tf.add(tf_px, tf.multiply(tf_time_delta, px_dot))
 tf_py_new = tf.add(tf_py, tf.multiply(tf_time_delta, py_dot))
 
@@ -33,11 +33,16 @@ def parse_grad(grad):
 
     return grad
 
-tf_px_new_grad = parse_grad(tf.gradients(tf_px_new, [tf_u1, tf_u2]))
-tf_py_new_grad = parse_grad(tf.gradients(tf_py_new, [tf_u1, tf_u2]))
-tf_theta_new_grad = parse_grad(tf.gradients(tf_theta_new, [tf_u1, tf_u2]))
-tf_v_new_grad = parse_grad(tf.gradients(tf_v_new, [tf_u1, tf_u2]))
-tf_phi_new_grad = parse_grad(tf.gradients(tf_phi_new, [tf_u1, tf_u2]))
+def get_grad_ordering():
+    return ['x', 'y', 'theta', 'vel', 'phi', 'u1', 'u2']
+
+grad_variables = [tf_px, tf_py, tf_theta, tf_v, th_phi, tf_u1, tf_u2]
+
+tf_px_new_grad = parse_grad(tf.gradients(tf_px_new, grad_variables))
+tf_py_new_grad = parse_grad(tf.gradients(tf_py_new, grad_variables))
+tf_theta_new_grad = parse_grad(tf.gradients(tf_theta_new, grad_variables))
+tf_v_new_grad = parse_grad(tf.gradients(tf_v_new, grad_variables))
+tf_phi_new_grad = parse_grad(tf.gradients(tf_phi_new, grad_variables))
 
 init_op = tf.global_variables_initializer()
 

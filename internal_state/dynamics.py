@@ -36,6 +36,10 @@ def parse_grad(grad):
 def get_grad_ordering():
     return ['x', 'y', 'theta', 'vel', 'phi', 'x_new', 'y_new', 'theta_new', 'vel_new', 'phi_new', 'u1', 'u2']
 
+def get_var_grad(grad, var_name):
+    order = get_grad_ordering()
+    return grad[order.index(var_name)]
+
 grad_variables = [tf_px, tf_py, tf_theta, tf_v, tf_phi, tf_px_new, tf_py_new, tf_theta_new, tf_v_new, tf_phi_new, tf_u1, tf_u2]
 
 tf_px_new_grad = parse_grad(tf.gradients(tf_px_new, grad_variables))

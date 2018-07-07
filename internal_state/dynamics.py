@@ -34,9 +34,9 @@ def parse_grad(grad):
     return grad
 
 def get_grad_ordering():
-    return ['x', 'y', 'theta', 'vel', 'phi', 'u1', 'u2']
+    return ['x', 'y', 'theta', 'vel', 'phi', 'x_new', 'y_new', 'theta_new', 'vel_new', 'phi_new', 'u1', 'u2']
 
-grad_variables = [tf_px, tf_py, tf_theta, tf_v, tf_phi, tf_u1, tf_u2]
+grad_variables = [tf_px, tf_py, tf_theta, tf_v, tf_phi, tf_px_new, tf_py_new, tf_theta_new, tf_v_new, tf_phi_new, tf_u1, tf_u2]
 
 tf_px_new_grad = parse_grad(tf.gradients(tf_px_new, grad_variables))
 tf_py_new_grad = parse_grad(tf.gradients(tf_py_new, grad_variables))
@@ -96,3 +96,50 @@ def next_phi_f(wheelbase, phi, u1, u2, sess):
 def next_phi_grad(wheelbase, phi, u1, u2, sess):
     sess.run(init_op)
     return sess.run(tf_phi_new_grad, feed_dict={tf_wheelbase: wheelbase, tf_phi: phi, tf_u1: u1, tf_u2: u2})
+
+
+# Extra dynamics equations; mostly just rearrangements of the above
+v_new_from_px_dot_and_theta_new = tf.div(px_dot, tf.cos(tf_theta_new))
+v_new_from_px_dot_and_theta_new_grad = parse_grad(tf.gradients(v_new_from_px_dot_and_theta_new, grad_variables))
+
+v_new_from_py_dot_and_theta_new = tf.div(py_dot, tf.sin(tf_theta_new))
+v_new_from_py_dot_and_theta_new_grad = parse_grad(tf.gradients(v_new_from_py_dot_and_theta_new, grad_variables))
+
+v_new_from_theta_dot_phi_new = tf.div(tf.multiply(theta_dot, tf_wheelbase), tf.tan(tf_phi_new))
+v_new_from_theta_dot_phi_new_grad = parse_grad(tf.gradients(v_new_from_theta_dot_phi_new, grad_variables))
+
+phi_new_from_theta_dot_v_new = tf.atan(tf.div(tf.multiply(theta_dot, tf_wheelbase), tf_v_new))
+phi_new_from_theta_dot_v_new_grad = parse_grad(tf.gradients(phi_new_from_theta_dot_v_new, grad_variables))
+
+def f_v_new_from_px_dot_and_theta_new(px_dot, theta_new, sess):
+    sess.run(init_op)
+    return sess.run(v_new_from_px_dot_and_theta_new, feed_dict={px_dot:px_dot, tf_theta_new:theta_new})
+
+def grad_v_new_from_px_dot_and_theta_new(px_dot, theta_new, sess):
+    sess.run(init_op)
+    return sess.run(v_new_from_px_dot_and_theta_new_grad, feed_dict={px_dot:px_dot, tf_theta_new:theta_new})
+
+def f_v_new_from_py_dot_and_theta_new(py_dot, theta_new, sess):
+    sess.run(init_op)
+    return sess.run(v_new_from_py_dot_and_theta_new, feed_dict={py_dot:py_dot, tf_theta_new:theta_new})
+
+def grad_v_new_from_py_dot_and_theta_new(py_dot, theta_new, sess):
+    sess.run(init_op)
+    grads = v_new_from_py_dot_and_theta_new_grad
+    return sess.run(grads, feed_dict={py_dot:py_dot, tf_theta_new:theta_new})
+
+def f_v_new_from_theta_dot_phi_new(wheelbase, theta_dot, phi_new, sess):
+    sess.run(init_op)
+    return sess.run(v_new_from_theta_dot_phi_new, feed_dict={tf_wheelbase:wheelbase, theta_dot:theta_dot, tf_phi_new:phi_new})
+
+def grad_v_new_from_theta_dot_phi_new(theta_dot, phi_new, sess):
+    sess.run(init_op)
+    return sess.run(v_new_from_theta_dot_phi_new_grad, feed_dict={tf_wheelbase:wheelbase, theta_dot:theta_dot, tf_phi_new:phi_new})
+
+def f_phi_new_from_theta_dot_v_new(wheelbase, theta_dot, v_new, sess):
+    sess.run(init_op)
+    return sess.run(phi_new_from_theta_dot_v_new, feed_dict={tf_wheelbase:wheelbase, theta_dot:theta_dot, tf_v_new:v_new})
+
+def grad_phi_new_from_theta_dot_v_new(theta_dot, phi_new, sess):
+    sess.run(init_op)
+    return sess.run(phi_new_from_theta_dot_v_new_grad, feed_dict={tf_wheelbase:wheelbase, theta_dot:theta_dot, tf_v_new:v_new})

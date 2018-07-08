@@ -139,6 +139,6 @@ def grad_v_new_from_theta_dot_phi_new(wheelbase, theta_dot, phi_new):
 def f_phi_new_from_theta_dot_v_new(wheelbase, theta_dot, v_new):
     return sess.run(phi_new_from_theta_dot_v_new, feed_dict={tf_wheelbase:wheelbase, tf_theta_dot:theta_dot, tf_v_new:v_new})
 
-def grad_phi_new_from_theta_dot_v_new(wheelbase, theta_dot, phi_new):
+def grad_phi_new_from_theta_dot_v_new(wheelbase, theta_dot, v_new):
     grad = select_grads(phi_new_from_theta_dot_v_new_grad, [tf_theta_dot, tf_phi_new])
     return sess.run(grad, feed_dict={tf_wheelbase:wheelbase, tf_theta_dot:theta_dot, tf_v_new:v_new})

@@ -1,6 +1,9 @@
 '''
 Definitions to perform dynamics calculations
 '''
+from collections import OrderedDict
+
+import numpy as np
 import tensorflow as tf
 
 from driving_sim.driving_utils.constants import time_delta
@@ -34,10 +37,11 @@ def parse_grad(grad):
 
     return grad
 
-grad_name_to_var = {'px': tf_px, 'py': tf_py, 'theta': tf_theta, 'vel': tf_v, 'phi': tf_phi, \
-                  'px_new': tf_px_new, 'py_new': tf_py_new, 'theta_new': tf_theta_new, \
-                  'v_new': tf_v_new, 'phi_new': tf_phi_new, 'px_dot': tf_px_dot, 'py_dot': tf_py_dot, \
-                  'theta_dot': tf_theta_dot, 'u1': tf_u1, 'u2': tf_u2}
+grad_name_to_var = OrderedDict([('px', tf_px), ('py', tf_py), ('theta', tf_theta), ('vel', tf_v), ('phi', tf_phi), \
+                   ('u1', tf_u1), ('u2', tf_u2), \
+                   ('px_new', tf_px_new), ('py_new', tf_py_new), ('theta_new', tf_theta_new), \
+                   ('v_new', tf_v_new), ('phi_new', tf_phi_new), ('px_dot', tf_px_dot), ('py_dot', tf_py_dot), \
+                   ('theta_dot', tf_theta_dot)])
 
 grad_var_to_name = {v: k for k, v in grad_name_to_var.iteritems()}
 
@@ -54,7 +58,11 @@ init_op = tf.global_variables_initializer()
 sess.run(init_op)
 
 def select_grads(grad, tf_vars):
-    return [grad[i] for i in range(len(grad)) if grad_variables[i] in tf_vars]
+    selected_grad = []
+    for v in tf_vars:
+        for i in range(len(grad_variables)):
+            if grad_variables[i] is v: selected_grad.append(grad[i])
+    return selected_grad
 
 def run_equations(px, py, theta, v, phi, wheelbase, u1, u2):
     return sess.run([tf_px_new, tf_py_new, tf_theta, tf_v_new, tf_phi_new], feed_dict={tf_px: px,
@@ -120,25 +128,29 @@ def f_v_new_from_px_dot_and_theta_new(px_dot, theta_new):
 
 def grad_v_new_from_px_dot_and_theta_new(px_dot, theta_new):
     grad = select_grads(v_new_from_px_dot_and_theta_new_grad, [tf_px_dot, tf_theta_new])
-    return sess.run(grad, feed_dict={tf_px_dot:px_dot, tf_theta_new:theta_new})
+    result = sess.run(grad, feed_dict={tf_px_dot:px_dot, tf_theta_new:theta_new})
+    return result
 
 def f_v_new_from_py_dot_and_theta_new(py_dot, theta_new):
     return sess.run(v_new_from_py_dot_and_theta_new, feed_dict={tf_py_dot:py_dot, tf_theta_new:theta_new})
 
 def grad_v_new_from_py_dot_and_theta_new(py_dot, theta_new):
     grad = select_grads(v_new_from_py_dot_and_theta_new_grad, [tf_py_dot, tf_theta_new])
-    return sess.run(grad, feed_dict={tf_py_dot:py_dot, tf_theta_new:theta_new})
+    result = sess.run(grad, feed_dict={tf_py_dot:py_dot, tf_theta_new:theta_new})
+    return result
 
 def f_v_new_from_theta_dot_phi_new(wheelbase, theta_dot, phi_new):
     return sess.run(v_new_from_theta_dot_phi_new, feed_dict={tf_wheelbase:wheelbase, tf_theta_dot:theta_dot, tf_phi_new:phi_new})
 
 def grad_v_new_from_theta_dot_phi_new(wheelbase, theta_dot, phi_new):
     grad = select_grads(v_new_from_theta_dot_phi_new_grad, [tf_theta_dot, tf_phi_new])
-    return sess.run(grad, feed_dict={tf_wheelbase:wheelbase, tf_theta_dot:theta_dot, tf_phi_new:phi_new})
+    result = sess.run(grad, feed_dict={tf_wheelbase:wheelbase, tf_theta_dot:theta_dot, tf_phi_new:phi_new})
+    return result
 
 def f_phi_new_from_theta_dot_v_new(wheelbase, theta_dot, v_new):
     return sess.run(phi_new_from_theta_dot_v_new, feed_dict={tf_wheelbase:wheelbase, tf_theta_dot:theta_dot, tf_v_new:v_new})
 
 def grad_phi_new_from_theta_dot_v_new(wheelbase, theta_dot, v_new):
     grad = select_grads(phi_new_from_theta_dot_v_new_grad, [tf_theta_dot, tf_phi_new])
-    return sess.run(grad, feed_dict={tf_wheelbase:wheelbase, tf_theta_dot:theta_dot, tf_v_new:v_new})
+    result = sess.run(grad, feed_dict={tf_wheelbase:wheelbase, tf_theta_dot:theta_dot, tf_v_new:v_new})
+    return result

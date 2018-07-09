@@ -128,23 +128,22 @@ def f_x_new_from_x_theta_new_v_new(wheelbase, px, theta, v):
     return sess.run(tf_px_new, feed_dict={tf_wheelbase: wheelbase, tf_px: px, tf_theta_new: theta, tf_v_new: v})
 
 def grad_x_new_from_x_theta_new_v_new(wheelbase, px, theta, v):
-    grad = select_grads(tf_px_new_grad, [tf_px, tf_theta, tf_v, tf_u1, tf_u2])
+    grad = select_grads(tf_px_new_grad, [tf_px, tf_theta, tf_v])
     return sess.run(grad, feed_dict={tf_wheelbase: wheelbase, tf_px: px, tf_theta_new: theta, tf_v_new: v})
 
 def f_y_new_from_y_theta_new_v_new(wheelbase, py, theta, v):
     return sess.run(tf_py_new, feed_dict={tf_wheelbase: wheelbase, tf_py: py, tf_theta_new: theta, tf_v_new: v})
 
 def grad_y_new_from_y_theta_new_v_new(wheelbase, py, theta, v):
-    grad = select_grads(tf_py_new_grad, [tf_py, tf_theta, tf_v, tf_u1, tf_u2])
+    grad = select_grads(tf_py_new_grad, [tf_py, tf_theta, tf_v])
     return sess.run(grad, feed_dict={tf_wheelbase: wheelbase, tf_py: py, tf_theta_new: theta, tf_v_new: v})
 
 def f_theta_new_from_theta_v_new_phi_new(wheelbase, theta, v, phi):
     return sess.run(tf_theta_new, feed_dict={tf_wheelbase: wheelbase, tf_theta: theta, tf_v_new: v, tf_phi_new: phi})
 
 def grad_theta_new_from_theta_v_new_phi_new(wheelbase, theta, v, phi):
-    grad = select_grads(tf_theta_new_grad, [tf_theta, tf_v, tf_phi, tf_u1, tf_u2])
+    grad = select_grads(tf_theta_new_grad, [tf_theta, tf_v, tf_phi])
     return sess.run(grad, feed_dict={tf_wheelbase: wheelbase, tf_theta: theta, tf_v_new: v, tf_phi_new: phi})
-
 
 def f_v_new_from_px_dot_and_theta_new(px_dot, theta_new):
     return sess.run(v_new_from_px_dot_and_theta_new, feed_dict={tf_px_dot:px_dot, tf_theta_new:theta_new})
